@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">Amberbridge</string>
+    <string name="action_discover">Connect new device</string>
+    <string name="action_quit">Quit</string>
+    <string name="about_title">About</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="icon_placeholder" translatable="false">Icon</string>
+    <string name="about_description">Bridge app for Amber Watch.</string>
+    <string name="about_links">Links</string>
+    <string name="homepage_url" translatable="false">Homepage: <a href="https://github.com/TheFirstLineOfCode/amber">https://github.com/TheFirstLineOfCode/amber</a></string>
+    <string name="about_version">Version %s</string>
+    <string name="about_activity_title">About Amberbridge</string>
+    <string name="title_activity_discovery">Device discovery</string>
+    <string name="discovery_stop_scanning">Stop scanning</string>
+    <string name="discovery_start_scanning">Start discovery</string>
+    <string name="discovery_bluetooth_scan">Bluetooth scan:</string>
+    <string name="discovery_note">Note:</string>
+    <string name="discovery_connected_devices_hint">Make your device discoverable. Currently connected devices will likely not be discovered. Activate location (e.g. GPS) on Android 6+. Disable Privacy Guard for Gadgetbridge, because it may crash and reboot your phone. If no device is found after a few minutes, try again after rebooting your mobile device.</string>
+    <string name="activity_prefs_discovery_pairing">Discovery and Pairing options</string>
+    <string name="discovery_enable_bluetooth">Enable Bluetooth to discover devices.</string>
+    <string name="discovery_successfully_bonded">Bound to %1$s.</string>
+    <string name="_unknown_">(unknown)</string>
+    <string name="not_connected">Not connected</string>
+    <string name="connecting">Connecting</string>
+    <string name="connected">Connected</string>
+    <string name="unknown_state">Unknown state</string>
+    <string name="unknown">Unknown</string>
+    <string name="waiting_for_reconnect">Waiting for reconnect</string>
+    <string name="initializing">Initializing</string>
+    <string name="initialized">initialized</string>
+    <string name="authenticating">Authenticating</string>
+    <string name="authentication_required">Authentication required</string>
+    <string name="devicetype_unknown">Unknown Device</string>
+    <string name="devicetype_pinetime_jf">PineTime (JF Firmware)</string>
+    <string name="candidate_item_device_image">Device image</string>
+    <string name="device_is_currently_bonded">ALREADY BONDED</string>
+    <string name="device_unsupported">UNSUPPORTED</string>
+    <string name="device_with_rssi">%1$s (%2$s)</string>
+    <string name="yes_quit_app">Yes, quit app.</string>
+</resources>

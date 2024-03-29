@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group
+        android:checkableBehavior="single"
+        android:id="@+id/application_options">
+        <item android:id="@+id/device_action_discover"
+            android:title="@string/action_discover"
+            android:iconTint="#7E7E7E"
+            android:icon="@drawable/ic_add" />
+        <item android:id="@+id/action_quit"
+            android:title="@string/action_quit"
+            android:icon="@drawable/ic_power_settings_new" />
+    </group>
+
+    <group
+        android:checkableBehavior="single"
+        android:id="@+id/further_options">
+        <item
+            android:id="@+id/about"
+            android:icon="@drawable/ic_info"
+            android:title="@string/about_title" />
+
+    </group>
+</menu>
