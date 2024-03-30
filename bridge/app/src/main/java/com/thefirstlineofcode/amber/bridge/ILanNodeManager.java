@@ -2,14 +2,16 @@ package com.thefirstlineofcode.amber.bridge;
 
 import java.util.List;
 
-public interface IDeviceManager {
+public interface ILanNodeManager {
 	public interface Listener {
-		void devicesChanged();
+		void deviceAdded(Device device);
+		void nodeAdded(String thingId, int lanId);
 	}
 	
-	List<Device> getDevices();
+	List<LanNode> getLanNodes();
 	void addDevice(Device device);
-	void removeDevice(int position);
+	void nodeAdded(String thingId, int lanId);
 	void addListener(Listener listener);
 	boolean removeListener(Listener listener);
+	void save();
 }

@@ -9,13 +9,12 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.HashMap;
 import java.util.List;
 
-public class DeviceAdapter extends ListAdapter<Device, DeviceAdapter.ViewHolder> {
+public class LanNodeAdapter extends ListAdapter<LanNode, LanNodeAdapter.ViewHolder> {
 	
-	public DeviceAdapter(Context context, List<Device> deviceList) {
-		super(new DeviceDiffItemCallback());
+	public LanNodeAdapter(Context context, List<LanNode> lanNodeList) {
+		super(new LanNodeDiffItemCallback());
 	}
 	
 	@NonNull
@@ -36,28 +35,24 @@ public class DeviceAdapter extends ListAdapter<Device, DeviceAdapter.ViewHolder>
 		}
 	}
 	
-	private static class DeviceDiffItemCallback extends DiffUtil.ItemCallback<Device> {
+	private static class LanNodeDiffItemCallback extends DiffUtil.ItemCallback<LanNode> {
 		@Override
-		public boolean areItemsTheSame(@NonNull Device oldItem, @NonNull Device newItem) {
+		public boolean areItemsTheSame(@NonNull LanNode oldItem, @NonNull LanNode newItem) {
 			if (oldItem == null || newItem == null)
 				return false;
 			
-			if (oldItem.getName() == null || newItem.getName() == null)
-				return false;
-			
-			if (oldItem.getAddress() == null || newItem.getAddress() == null)
+			if (oldItem.getThingId() == null || newItem.getThingId() == null)
 				return false;
 			
 			if (oldItem == newItem)
 				return true;
 			
-			return oldItem.getName().equals(newItem.getName()) &&
-					oldItem.getAddress().equals(newItem.getAddress());
-					
+			return oldItem.getThingId().equals(newItem.getThingId()) &&
+					oldItem.getThingId().equals(newItem.getThingId());
 		}
 		
 		@Override
-		public boolean areContentsTheSame(@NonNull Device oldItem, @NonNull Device newItem) {
+		public boolean areContentsTheSame(@NonNull LanNode oldItem, @NonNull LanNode newItem) {
 			// TODO Compare all fields of two items.
 			return areItemsTheSame(oldItem, newItem);
 		}

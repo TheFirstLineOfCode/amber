@@ -22,17 +22,17 @@ import com.google.android.material.navigation.NavigationView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements
+		NavigationView.OnNavigationItemSelectedListener, ILanNodeManager.Listener {
 	private static final Logger logger = LoggerFactory.getLogger(MainActivity.class);
 	
 	private FloatingActionButton fab;
 	
-	private RecyclerView deviceListView;
-	private List<Device> deviceList;
-	private DeviceAdapter deviceAdapter;
+	private RecyclerView lanNodeListView;
+	private List<LanNode> lanNodes;
+	private LanNodeAdapter lanNodeAdapter;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -61,16 +61,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		NavigationView navigationView = findViewById(R.id.nav_view);
 		navigationView.setNavigationItemSelectedListener(this);
 		
-		deviceListView = findViewById(R.id.deviceListView);
-		deviceListView.setHasFixedSize(true);
-		deviceListView.setLayoutManager(new LinearLayoutManager(this));
+		lanNodeListView = findViewById(R.id.lanNodeListView);
+		lanNodeListView.setHasFixedSize(true);
+		lanNodeListView.setLayoutManager(new LinearLayoutManager(this));
 		
-		deviceList = ((MainApplication)getApplication()).loadDevices();
-		if (deviceList == null)
-			deviceList = new ArrayList<>();
+		ILanNodeManager lanNodeManager = ((ILanNodeManager)getApplication());
+		lanNodeManager.addListener(this);
 		
-		deviceAdapter = new DeviceAdapter(this, deviceList);
-		deviceAdapter.setHasStableIds(true);
+		lanNodes = lanNodeManager.getLanNodes();
+		lanNodeAdapter = new LanNodeAdapter(this, lanNodes);
+		lanNodeAdapter.setHasStableIds(true);
 		
 		logger.info("Amberbridge started.");
 	}
@@ -125,5 +125,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	
 	private void launchDiscoveryActivity() {
 		startActivity(new Intent(this, DiscoveryActivity.class));
+	}
+	
+	@Override
+	public void deviceAdded(Device device) {
+		LanNode lanNode = new LanNode(Device.getThingId(device), device);
+		if (!lanNodes.contains(lanNode)) {
+			logger.info(String.format("Device added. Device: %s.", device));
+			lanNodes.add(lanNode);
+			lanNodeAdapter.notifyDataSetChanged();
+		}
+	}
+	
+	@Override
+	public void nodeAdded(String thingId, int lanId) {
 	}
 }

@@ -286,10 +286,10 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 			return;
 		}
 		
-		bondDevice(deviceCandidate);
+		bondAndConnectToDevice(deviceCandidate);
 	}
 	
-	private void bondDevice(DeviceCandidate deviceCandidate) {
+	private void bondAndConnectToDevice(DeviceCandidate deviceCandidate) {
 		stopDiscovery();
 		
 		try {
@@ -297,16 +297,17 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 			
 			BluetoothDevice device = deviceCandidate.getDevice();
 			if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
-				logger.error("A bonded device existed in device candidates!");
-				
-				Toast.makeText(this,
-						"Error: A bonded device existed in device candidates!",
-						Toast.LENGTH_SHORT).show();
-				
+				logger.warn("Try to add a bonded device.!");
+			} else {
+				device.createBond();
 				return;
 			}
 			
-			device.createBond();
+			ILanNodeManager lanNodeManager = (MainApplication)getApplication();
+			lanNodeManager.addDevice(
+					new Device(device.getName(), device.getAddress()));
+			lanNodeManager.save();;
+			finish();
 		} catch (SecurityException e) {
 			logger.error("SecurityException has thrown when calling adapter.cancelDiscovery().");
 			return;
@@ -345,6 +346,7 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 					Toast.makeText(this,
 							getString(R.string.discovery_enable_bluetooth),
 							Toast.LENGTH_SHORT).show());
+			setStatus(Status.NORMAL);
 			return false;
 		}
 		
@@ -374,7 +376,6 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 	
 	private boolean ensureBluetoothReady() {
 		boolean available = checkBluetoothAvailable();
-		startButton.setEnabled(available);
 		if (available) {
 			try {
 				adapter.getBluetoothLeScanner().stopScan(getScanCallback());

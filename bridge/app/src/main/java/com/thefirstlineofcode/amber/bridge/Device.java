@@ -23,6 +23,7 @@ public class Device {
 	public String getAddress() {
 		return address;
 	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == this) {
@@ -45,6 +46,10 @@ public class Device {
 	
 	@Override
 	public String toString() {
-		return String.format("Device[%s:%s]", name, address);
+		return String.format("Device[%s-%s]", name, address);
+	}
+	
+	public static String getThingId(Device device) {
+		return String.format("%s-%s", device.getName(), device.getAddress());
 	}
 }
