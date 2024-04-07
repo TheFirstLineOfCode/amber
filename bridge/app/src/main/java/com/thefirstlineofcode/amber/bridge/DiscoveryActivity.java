@@ -4,7 +4,12 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanRecord;
@@ -42,9 +47,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
-public class DiscoveryActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
+public class DiscoveryActivity extends AppCompatActivity
+		implements AdapterView.OnItemClickListener {
 	public static final int BLUETOOTH_PERMISSIONS_REQUEST_CODE = 200;
+	
+	public static final UUID UUID_SERVICE_BATTERY = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb");
+	public static final UUID UUID_SERVICE_HEART_RATE = UUID.fromString("0000180d-0000-1000-8000-00805f9b34fb");
+	public static final UUID UUID_SERVICE_MOTION = UUID.fromString("00030000-78fc-48fe-8e23-433b3a1942d0");
+	
+	public static final UUID UUID_CHARACTERISTIC_BATTERY_LEVEL = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb");
+	public static final UUID UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT = UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb");
+	public static final UUID UUID_CHARACTERISTIC_MOTION_STEP_COUNT = UUID.fromString("00030001-78fc-48fe-8e23-433b3a1942d0");
 	
 	private static final Logger logger = LoggerFactory.getLogger(DiscoveryActivity.class);
 	private static final long SCAN_DURATION = 30000;
@@ -119,19 +134,32 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 				return;
 			}
 			
-			// TODO: Check device address....
 			BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+			if (device == null) {
+				if (logger.isErrorEnabled())
+					logger.error("Bonding receiver received a null bonded device!!!");
+				return;
+			}
+			
+			try {
+				if (!isInfiniTimeDevice(device.getName())) {
+					return;
+				}
+			} catch (SecurityException e) {
+				throw new RuntimeException("Failed to call device.getName().", e);
+			}
 			
 			int bondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE);
+			if (logger.isDebugEnabled()) {
+				logger.debug("ACTION_BOND_STATE_CHANGED");
+				logger.debug(String.format(Locale.ENGLISH, "Bond state: %d", bondState));
+			}
+			
 			switch (bondState) {
 				case BluetoothDevice.BOND_BONDED: {
-					logger.debug("ACTION_BOND_STATE_CHANGED");
 					if (device != null) {
-						logger.debug(String.format(Locale.ENGLISH, "Bond state: %d", bondState));
-						
 						if (bondState == BluetoothDevice.BOND_BONDED) {
-							// TODO
-							// AmberUtil.handleDeviceBonded((BondingInterface) context, getCandidateFromMAC(device));
+							DiscoveryActivity.this.connectToDevice(device);
 						}
 					}
 					break;
@@ -142,10 +170,11 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 				}
 				case BluetoothDevice.BOND_NONE: {
 					// Not bonded
+					logger.warn("Failed to binding device: " + device.getAddress() + ": " + bondState);
 					break;
 				}
 				default: {
-					logger.warn("Unknown bond state for device " + device.getAddress() + ": " + bondState);
+					logger.warn("Unknown bond state for device: " + device.getAddress() + ": " + bondState);
 				}
 			}
 		}
@@ -156,6 +185,113 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 		public void run() {
 			stopDiscovery();
 			logger.info("Discovery stopped by thread timeout.");
+		}
+	};
+	
+	private GattCallback gattCallback;
+	
+	private class GattCallback extends BluetoothGattCallback {
+		private BluetoothDevice device;
+		private BluetoothGatt gatt;
+		
+		public GattCallback(BluetoothDevice device) {
+			this.device = device;
+		}
+		@Override
+		public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+			super.onConnectionStateChange(gatt, status, newState);
+			
+			if (logger.isDebugEnabled())
+				logger.debug("Connection state changed. State: {}.", newState);
+			
+			if (status != BluetoothGatt.GATT_SUCCESS) {
+				logger.error("Failed t9o connect to device. Device: {}.", device);
+				try {
+					gatt.close();
+				} catch (SecurityException e) {
+					throw new RuntimeException("Failed to call gatt.close().", e);
+				}
+				
+				Toast.makeText(DiscoveryActivity.this,
+						String.format("Failed to connect to device. Device: %s.", device),
+						Toast.LENGTH_SHORT).show();
+				
+				return;
+			}
+			
+			if (newState == BluetoothProfile.STATE_CONNECTED) {
+				this.gatt = gatt;
+				logger.info("Try to discover GATT services....");
+				try {
+					gatt.discoverServices();
+				} catch (SecurityException e) {
+					Toast.makeText(DiscoveryActivity.this,
+							String.format("Security exception threw when calling gatt.discoverServices(). Device: %s.", device),
+							Toast.LENGTH_SHORT).show();
+					gatt.close();
+					gatt = null;
+				}
+			}
+		}
+		
+		@Override
+		public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+			super.onServicesDiscovered(gatt, status);
+			
+			if (logger.isDebugEnabled())
+				logger.debug("Services has discovered. status: {}.", status);
+			
+			if (status != BluetoothGatt.GATT_SUCCESS) {
+				logger.error("Failed to discover services. Device: {}.", device);
+				try {
+					gatt.close();
+				} catch (SecurityException e) {
+					throw new RuntimeException("Failed to call gatt.close().", e);
+				}
+				
+				Toast.makeText(DiscoveryActivity.this,
+						String.format("Failedo connect to device. Device: %s.", device),
+						Toast.LENGTH_SHORT).show();
+				
+				return;
+			}
+			
+			List<BluetoothGattService> services = gatt.getServices();
+			
+			boolean characteristicBatteryLevelFound = false;
+			boolean characteristicHeartRateMeasurementFound = false;
+			boolean characteristicMotionStepCountFound = false;
+			for (BluetoothGattService service : services) {
+				logger.info("Bluetooth service {} found.", service.getUuid());
+				
+				if (UUID_SERVICE_BATTERY.equals(service.getUuid())) {
+					characteristicBatteryLevelFound = findCharacteristic(service, UUID_CHARACTERISTIC_BATTERY_LEVEL);
+				} else if (UUID_SERVICE_HEART_RATE.equals(service.getUuid())) {
+					characteristicHeartRateMeasurementFound = findCharacteristic(service, UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT);
+				} else if (UUID_SERVICE_MOTION.equals(service.getUuid())) {
+					characteristicMotionStepCountFound = findCharacteristic(service, UUID_CHARACTERISTIC_MOTION_STEP_COUNT);
+				} else {
+					// Ignore.
+				}
+			}
+			
+			if (characteristicBatteryLevelFound)
+				logger.info("Characteristic battery level found.");
+			
+			if (characteristicHeartRateMeasurementFound)
+				logger.info("Characteristic heart rate measurement found.");
+			
+			if (characteristicMotionStepCountFound)
+				logger.info("Characteristic motion step count found.");
+		}
+		
+		private boolean findCharacteristic(BluetoothGattService service, UUID uuidCharacteristic) {
+			for (BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
+				if (uuidCharacteristic.equals(characteristic.getUuid()))
+					return true;
+			}
+			
+			return false;
 		}
 	};
 	
@@ -256,13 +392,6 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 		registerReceiver(bondingReceiver, bondingIntents);
 	}
 	
-	public void registerBondReceiver() {
-		IntentFilter bondIntents = new IntentFilter();
-		bondIntents.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-		
-		// registerReceiver(bond, bondIntents);
-	}
-	
 	@Override
 	public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
 		if (status == Status.SCANNING) {
@@ -303,15 +432,27 @@ public class DiscoveryActivity extends AppCompatActivity implements AdapterView.
 				return;
 			}
 			
-			ILanNodeManager lanNodeManager = (MainApplication)getApplication();
-			lanNodeManager.addDevice(
-					new Device(device.getName(), device.getAddress()));
-			lanNodeManager.save();;
-			finish();
+			connectToDevice(device);
 		} catch (SecurityException e) {
 			logger.error("SecurityException has thrown when calling adapter.cancelDiscovery().");
 			return;
 		}
+	}
+	
+	private void connectToDevice(BluetoothDevice device) {
+		if (gattCallback == null)
+			gattCallback = new GattCallback(device);
+		
+		device.connectGatt(this, false, gattCallback);
+	}
+	
+	private void deviceConnected(BluetoothDevice device) throws SecurityException {
+		ILanNodeManager lanNodeManager = (MainApplication)getApplication();
+		lanNodeManager.addDevice(
+				new Device(device.getName(), device.getAddress()));
+		lanNodeManager.save();
+		
+		finish();
 	}
 	
 	public void onStartButtonClick(View button) {
