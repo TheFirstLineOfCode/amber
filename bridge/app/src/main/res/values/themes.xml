@@ -23,6 +23,8 @@
         <item name="textColorTertiary">@color/text_color_tertiary</item>
 
         <item name="drawerArrowStyle">@style/Theme.Amberbridge.DrawerButtonStyle</item>
+
+        <item name="cardview_background_color">@color/cardview_light_background</item>
     </style>
 
     <style name="Theme.Amberbridge.NoActionBar">

@@ -6,4 +6,8 @@
 
     <attr name="drawer_header_color" format="color" />
     <attr name="drawer_title_color" format="color" />
+
+    <attr name="selectableItemBackground" format="reference" />
+    <attr name="cardview_background_color" format="color" />
+
 </resources>

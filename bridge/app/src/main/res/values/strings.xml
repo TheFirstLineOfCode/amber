@@ -38,4 +38,7 @@
     <string name="device_unsupported">UNSUPPORTED</string>
     <string name="device_with_rssi">%1$s (%2$s)</string>
     <string name="yes_quit_app">Yes, quit app.</string>
+    <string name="battery_detail_activity_title">Battery info</string>
+    <string name="battery_level">Battery level</string>
+    <string name="controlcenter_get_heartrate_measurement">Get heart rate measurement</string>
 </resources>

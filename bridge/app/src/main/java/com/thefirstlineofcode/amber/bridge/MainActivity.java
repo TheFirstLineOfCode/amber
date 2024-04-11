@@ -8,6 +8,7 @@ import android.view.MenuItem;
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
@@ -30,9 +31,9 @@ public class MainActivity extends AppCompatActivity implements
 	
 	private FloatingActionButton fab;
 	
-	private RecyclerView lanNodeListView;
+	private RecyclerView lanNodesView;
 	private List<LanNode> lanNodes;
-	private LanNodeAdapter lanNodeAdapter;
+	private LanNodesAdapter lanNodesAdapter;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -61,16 +62,18 @@ public class MainActivity extends AppCompatActivity implements
 		NavigationView navigationView = findViewById(R.id.nav_view);
 		navigationView.setNavigationItemSelectedListener(this);
 		
-		lanNodeListView = findViewById(R.id.lanNodeListView);
-		lanNodeListView.setHasFixedSize(true);
-		lanNodeListView.setLayoutManager(new LinearLayoutManager(this));
+		lanNodesView = findViewById(R.id.lanNodesView);
+		lanNodesView.setHasFixedSize(true);
+		lanNodesView.setLayoutManager(new LinearLayoutManager(this));
 		
 		ILanNodeManager lanNodeManager = ((ILanNodeManager)getApplication());
 		lanNodeManager.addListener(this);
 		
 		lanNodes = lanNodeManager.getLanNodes();
-		lanNodeAdapter = new LanNodeAdapter(this, lanNodes);
-		lanNodeAdapter.setHasStableIds(true);
+		lanNodesAdapter = new LanNodesAdapter(this, lanNodes);
+		lanNodesAdapter.setHasStableIds(true);
+		
+		lanNodesView.setAdapter(lanNodesAdapter);
 		
 		logger.info("Amberbridge started.");
 	}
@@ -133,11 +136,17 @@ public class MainActivity extends AppCompatActivity implements
 		if (!lanNodes.contains(lanNode)) {
 			logger.info(String.format("Device added. Device: %s.", device));
 			lanNodes.add(lanNode);
-			lanNodeAdapter.notifyDataSetChanged();
 		}
 	}
 	
 	@Override
 	public void nodeAdded(String thingId, int lanId) {
+	}
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		
+		lanNodesAdapter.notifyDataSetChanged();
 	}
 }
