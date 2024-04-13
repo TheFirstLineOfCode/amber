@@ -1,10 +1,7 @@
 package com.thefirstlineofcode.amber.bridge;
 
-import android.Manifest;
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanRecord;
@@ -14,7 +11,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,9 +24,9 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
+
+import com.thefirstlineofcode.sand.client.thing.ThingsUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +41,6 @@ import java.util.Set;
 
 public class DiscoveryActivity extends AppCompatActivity
 		implements AdapterView.OnItemClickListener {
-	public static final int BLUETOOTH_PERMISSIONS_REQUEST_CODE = 200;
-	
 	private static final Logger logger = LoggerFactory.getLogger(DiscoveryActivity.class);
 	private static final long SCAN_DURATION = 30000;
 	private static final short RSSI_UNKNOWN = 0;
@@ -178,33 +172,6 @@ public class DiscoveryActivity extends AppCompatActivity
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		if ((checkSelfPermission(Manifest.permission.BLUETOOTH) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)  ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
-						PackageManager.PERMISSION_DENIED)) {
-			requestPermissions(
-					new String[] {
-							Manifest.permission.BLUETOOTH,
-							Manifest.permission.BLUETOOTH_ADMIN,
-							Manifest.permission.BLUETOOTH_SCAN,
-							Manifest.permission.BLUETOOTH_CONNECT,
-							Manifest.permission.ACCESS_FINE_LOCATION,
-							Manifest.permission.ACCESS_COARSE_LOCATION
-					}, BLUETOOTH_PERMISSIONS_REQUEST_CODE);
-		} else {
-			onCreate();
-		}
-	}
-	
-	private void onCreate() {
 		setContentView(R.layout.activity_discovery);
 		
 		startButton = findViewById(R.id.discovery_start);
@@ -317,12 +284,12 @@ public class DiscoveryActivity extends AppCompatActivity
 	}
 	
 	private void deviceFound(BluetoothDevice device) throws SecurityException {
-		ILanNodeManager lanNodeManager = (MainApplication)getApplication();
-		lanNodeManager.addDevice(
-				new Device(device.getName(), device.getAddress()));
-		lanNodeManager.save();
-		
 		finish();
+		
+		ILanNodeManager lanNodeManager = (MainApplication)getApplication();
+		lanNodeManager.addThing(
+				new BleThing(String.format("amber-%s", ThingsUtils.generateRandomId(9)), device.getName(), device.getAddress()));
+		lanNodeManager.save();
 	}
 	
 	public void onStartButtonClick(View button) {
@@ -386,7 +353,7 @@ public class DiscoveryActivity extends AppCompatActivity
 	}
 	
 	private boolean ensureBluetoothReady() {
-		boolean available = checkBluetoothAvailable();
+		boolean available = MainApplication.checkBluetoothAvailable(this);
 		if (available) {
 			try {
 				adapter.getBluetoothLeScanner().stopScan(getScanCallback());
@@ -403,80 +370,10 @@ public class DiscoveryActivity extends AppCompatActivity
 		return false;
 	}
 	
-	private boolean checkBluetoothAvailable() {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-			if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-				logger.warn("No BLUETOOTH_SCAN permission");
-				this.adapter = null;
-				
-				return false;
-			}
-			
-			if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-				logger.warn("No BLUETOOTH_CONNECT permission");
-				this.adapter = null;
-				
-				return false;
-			}
-		}
-		
-		BluetoothManager bluetoothManager = (BluetoothManager)getSystemService(BLUETOOTH_SERVICE);
-		if (bluetoothManager == null) {
-			logger.warn("No bluetooth service available");
-			this.adapter = null;
-			
-			return false;
-		}
-		
-		BluetoothAdapter adapter = bluetoothManager.getAdapter();
-		if (adapter == null) {
-			logger.warn("No bluetooth adapter available");
-			this.adapter = null;
-			
-			return false;
-		}
-		
-		if (!adapter.isEnabled()) {
-			logger.warn("Bluetooth not enabled");
-			Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-			
-			try {
-				startActivity(enableBtIntent);
-			} catch (SecurityException e) {
-                /* This should never happen because we did checkSelfPermission above.
-                   But we add try...catch to stop Android Studio errors */
-				logger.warn("startActivity(enableBtIntent) failed with SecurityException");
-			}
-			this.adapter = null;
-			
-			return false;
-		}
-		
-		this.adapter = adapter;
-		
-		return true;
-	}
-	
 	private Message getPostMessage(Runnable runnable) {
 		Message message = Message.obtain(handler, runnable);
 		message.obj = runnable;
 		return message;
-	}
-	
-	@Override
-	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		
-		if (requestCode == BLUETOOTH_PERMISSIONS_REQUEST_CODE) {
-			onCreate();
-		} else {
-			new AlertDialog.Builder(this).
-					setTitle("Error").
-					setMessage("User denied permissions request. App will exit.").
-					setPositiveButton("Ok", (dialog, which) -> {
-						finish();
-					}).create().show();
-		}
 	}
 	
 	private void stopDiscovery() {

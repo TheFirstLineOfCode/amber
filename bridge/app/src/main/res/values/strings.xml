@@ -41,4 +41,8 @@
     <string name="battery_detail_activity_title">Battery info</string>
     <string name="battery_level">Battery level</string>
     <string name="controlcenter_get_heartrate_measurement">Get heart rate measurement</string>
+    <string name="device_connect">Connect...</string>
+    <string name="device_disconnect">Disconnect</string>
+    <string name="device_delete_device">Delete Device</string>
+
 </resources>

@@ -1,7 +1,15 @@
 package com.thefirstlineofcode.amber.bridge;
 
+import android.Manifest;
 import android.app.Application;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
+
+import androidx.core.app.ActivityCompat;
 
 import com.thefirstlineofcode.chalk.android.logger.LogConfigurator;
 
@@ -59,7 +67,7 @@ public class MainApplication extends Application implements ILanNodeManager {
 			
 			List<LanNode> lanNodes = new ArrayList<>();
 			for (String thingId : lanNodesProperties.stringPropertyNames()) {
-				lanNodes.add(getLanNode(thingId, lanNodesProperties.getProperty(thingId)));
+				lanNodes.add(createLanNode(thingId, lanNodesProperties.getProperty(thingId)));
 			}
 			
 			return Collections.unmodifiableList(lanNodes);
@@ -71,40 +79,43 @@ public class MainApplication extends Application implements ILanNodeManager {
 		}
 	}
 	
-	private LanNode getLanNode(String thingId, String lanNodeDetails) {
+	private LanNode createLanNode(String thingId, String lanNodeDetails) {
 		StringTokenizer st = new StringTokenizer(lanNodeDetails, ",");
 		if (st.countTokens() != 3)
 			throw new IllegalArgumentException("Illegal LAN node details info.");
 		
 		Integer lanId = Integer.parseInt(st.nextToken());
-		String deviceName = st.nextToken();
-		String deviceAddress = st.nextToken();
+		String thingName = st.nextToken();
+		String thingAddress = st.nextToken();
 		
-		return new LanNode(thingId, lanId == 0 ? null : lanId, new Device(deviceName, deviceAddress));
+		return new LanNode(lanId == 0 ? null : lanId, new BleThing(thingId, thingName, thingAddress));
 	}
 	
 	@Override
-	public List<LanNode> getLanNodes() {
-		return Collections.unmodifiableList(lanNodes);
+	public LanNode[] getLanNodes() {
+		if (lanNodes == null || lanNodes.size() == 0)
+			return new LanNode[0];
+		
+		return lanNodes.toArray(new LanNode[lanNodes.size()]);
 	}
 	
 	@Override
-	public void addDevice(Device device) {
-		LanNode lanNode = new LanNode(Device.getThingId(device), device);
+	public void addThing(IBleThing thing) {
+		LanNode lanNode = new LanNode(null, thing);
 		if (lanNodes.contains(lanNode)) {
 			if (logger.isWarnEnabled())
-				logger.warn(String.format("Try to add a existed device. Device: %s.", device));
+				logger.warn(String.format("Try to add a existed thing. Thing: %s.", thing));
 			
 			return;
 		}
 		
 		lanNodes.add(lanNode);
-		notifyDeviceAdded(device);
+		notifyThingAdded(thing);
 	}
 	
-	private void notifyDeviceAdded(Device device) {
+	private void notifyThingAdded(IBleThing thing) {
 		for (Listener listener : listeners)
-			listener.deviceAdded(device);
+			listener.thingAdded(thing);
 	}
 	
 	@Override
@@ -127,7 +138,7 @@ public class MainApplication extends Application implements ILanNodeManager {
 	public void save() {
 		Properties lanNodesProperties = new Properties();
 		for (LanNode lanNode : lanNodes) {
-			lanNodesProperties.put(lanNode.getThingId(), getLanNodeDetails(lanNode));
+			lanNodesProperties.put(lanNode.getThing().getThingId(), getLanNodeDetails(lanNode));
 		}
 		
 		File dataDir = getApplicationContext().getFilesDir();
@@ -152,10 +163,53 @@ public class MainApplication extends Application implements ILanNodeManager {
 	
 	private String getLanNodeDetails(LanNode lanNode) {
 		return String.format("%d,%s,%s", lanNode.getLanId() == null ? 0 : lanNode.getLanId(),
-				lanNode.getDevice().getName(), lanNode.getDevice().getAddress());
+				lanNode.getThing().getName(), lanNode.getThing().getAddress());
 	}
 	
-	public void startDiscoveryActivity() {
-		startActivity(new Intent(this, DiscoveryActivity.class));
+	public static boolean checkBluetoothAvailable(Context context) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+			if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+				logger.warn("No BLUETOOTH_SCAN permission");
+				
+				return false;
+			}
+			
+			if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+				logger.warn("No BLUETOOTH_CONNECT permission");
+				
+				return false;
+			}
+		}
+		
+		BluetoothManager bluetoothManager = (BluetoothManager)context.getSystemService(BLUETOOTH_SERVICE);
+		if (bluetoothManager == null) {
+			logger.warn("No bluetooth service available");
+			
+			return false;
+		}
+		
+		BluetoothAdapter adapter = bluetoothManager.getAdapter();
+		if (adapter == null) {
+			logger.warn("No bluetooth adapter available");
+			
+			return false;
+		}
+		
+		if (!adapter.isEnabled()) {
+			logger.warn("Bluetooth not enabled");
+			Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+			
+			try {
+				context.startActivity(enableBtIntent);
+			} catch (SecurityException e) {
+                /* This should never happen because we did checkSelfPermission above.
+                   But we add try...catch to stop Android Studio errors */
+				logger.warn("startActivity(enableBtIntent) failed with SecurityException");
+			}
+			
+			return false;
+		}
+		
+		return true;
 	}
 }

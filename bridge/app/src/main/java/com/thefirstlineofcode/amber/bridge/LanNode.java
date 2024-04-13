@@ -1,32 +1,18 @@
 package com.thefirstlineofcode.amber.bridge;
 
 public class LanNode {
-	private String thingId;
 	private Integer lanId;
-	private Device device;
+	private IBleThing thing;
 	private boolean confirmed;
 	
 	public LanNode() {
 		this(null, null);
 	}
 	
-	public LanNode(String thingId, Device device) {
-		this(thingId, null, device);
-	}
-	
-	public LanNode(String thingId, Integer lanId, Device device) {
-		this.thingId = thingId;
-		this.device = device;
+	public LanNode(Integer lanId, IBleThing thing) {
+		this.thing = thing;
 		
 		setLanId(lanId);
-	}
-	
-	public String getThingId() {
-		return thingId;
-	}
-	
-	public void setThingId(String thingId) {
-		this.thingId = thingId;
 	}
 	
 	public Integer getLanId() {
@@ -35,23 +21,18 @@ public class LanNode {
 	
 	public void setLanId(Integer lanId) {
 		this.lanId = lanId;
-		confirmed = (lanId != null);
 	}
 	
-	public Device getDevice() {
-		return device;
+	public IBleThing getThing() {
+		return thing;
 	}
 	
-	public void setDevice(Device device) {
-		this.device = device;
+	public void setThing(BleThing thing) {
+		this.thing = thing;
 	}
 	
 	public boolean isConfirmed() {
-		return confirmed;
-	}
-	
-	public void setConfirmed(boolean confirmed) {
-		this.confirmed = confirmed;
+		return lanId != null;
 	}
 	
 	@Override
@@ -64,26 +45,33 @@ public class LanNode {
 		}
 		
 		LanNode other = (LanNode)obj;
-		if (other.thingId == null)
+		if (lanId == null && other.lanId != null)
 			return false;
 		
-		if (other.getThingId().equals(this.getThingId())) {
-			return true;
-		}
+		if (this.lanId != null && !this.lanId.equals(other.lanId))
+			return false;
 		
-		return false;
+		if (this.getThing() == null)
+			return false;
+		
+		return this.getThing().equals(other.getThing());
 	}
 	
 	@Override
 	public int hashCode() {
-		if (thingId == null)
-			return 0;
+		int hash = 7;
 		
-		return thingId.hashCode() ^ 37;
+		if (lanId != null)
+			hash += 31 * hash + lanId.hashCode();
+		
+		if (thing != null)
+			hash += 31 * hash + thing.hashCode();
+		
+		return hash;
 	}
 	
 	@Override
 	public String toString() {
-		return String.format("LanNode[%s: %s, %s]", thingId, lanId, device);
+		return String.format("LanNode[%s: %s, %s]", lanId, lanId, thing);
 	}
 }

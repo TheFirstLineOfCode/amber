@@ -2,9 +2,11 @@ package com.thefirstlineofcode.amber.bridge;
 
 import android.content.Context;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -36,20 +38,66 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 	public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
 		LanNode lanNode = lanNodes.get(position);
 		
-		Device device = lanNode.getDevice();
+		IBleThing thing = lanNode.getThing();
+		if (!(thing instanceof AmberWatch))
+			throw new IllegalArgumentException("Not amber watch.");
+		
+		AmberWatch device = (AmberWatch)thing;
 		holder.deviceNameLabel.setText(String.format("%s - %s-%s", "?", device.getName(), device.getAddress()));
 		
-		Device.State deviceState =  device.getState();
+		IBleDevice.State deviceState =  device.getState();
 		String sDeviceStatus = null;
-		if (deviceState == Device.State.CONNECTED)
+		if (deviceState == IBleDevice.State.CONNECTED)
 			sDeviceStatus = "CONNECTED";
-		else if (deviceState == Device.State.CONNECTING)
+		else if (deviceState == IBleDevice.State.CONNECTING)
 			sDeviceStatus = "CONNECTING";
 		else
 			sDeviceStatus = "NOT CONNECTED";
 		holder.deviceStatusLabel.setText(sDeviceStatus);
 		
+		holder.deviceInfoView.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				showDeviceSubmenu(view, device);
+			}
+		});
+		
 		holder.batteryIcon.setImageResource(getBatteryIcon(device.getBatteryLevel()));
+	}
+	
+	private void showDeviceSubmenu(final View v, final IBleDevice device) {
+		IBleDevice.State state = device.getState();
+		
+		PopupMenu menu = new PopupMenu(v.getContext(), v);
+		menu.inflate(R.menu.activity_main_device_submenu);
+		
+		if (state == IBleDevice.State.CONNECTING) {
+			menu.getMenu().findItem(R.id.device_submenu_connect).setEnabled(false);
+			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
+			menu.getMenu().findItem(R.id.device_submenu_remove).setEnabled(false);
+		} else if (state == IBleDevice.State.NOT_CONNECTED) {
+			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
+		} else {
+			menu.getMenu().getItem(R.id.device_submenu_connect).setVisible(false);
+		}
+		
+		menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+			@Override
+			public boolean onMenuItemClick(MenuItem menuItem) {
+				switch (menuItem.getItemId()) {
+					case R.id.device_submenu_connect:
+						return true;
+					case R.id.device_submenu_disconnect:
+						return true;
+					case R.id.device_submenu_remove:
+						return true;
+				}
+				
+				return false;
+			}
+		});
+		
+		menu.show();
 	}
 	
 	private int getBatteryIcon(int batterLevel) {
@@ -72,11 +120,8 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		TextView deviceStatusLabel;
 		
 		ImageView deviceInfoView;
-		
 		ImageView batteryIcon;
-		
 		ImageView heartRateIcon;
-		
 		ImageView totalStepsIcon;
 		
 		public ViewHolder(@NonNull View view) {
@@ -104,14 +149,13 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 			if (oldItem == null || newItem == null)
 				return false;
 			
-			if (oldItem.getThingId() == null || newItem.getThingId() == null)
+			if (oldItem.getThing() == null || newItem.getThing() == null)
 				return false;
 			
 			if (oldItem == newItem)
 				return true;
 			
-			return oldItem.getThingId().equals(newItem.getThingId()) &&
-					oldItem.getThingId().equals(newItem.getThingId());
+			return oldItem.getThing().equals(newItem.getThing());
 		}
 		
 		@Override

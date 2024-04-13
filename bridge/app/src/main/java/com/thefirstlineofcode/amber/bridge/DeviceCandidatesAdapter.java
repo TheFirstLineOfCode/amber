@@ -67,7 +67,7 @@ public class DeviceCandidatesAdapter extends ArrayAdapter<DeviceCandidate> {
     }
 
     private String formatDeviceCandidate(DeviceCandidate device) {
-        if (device.getRssi() > Device.RSSI_UNKNOWN) {
+        if (device.getRssi() > BleThing.RSSI_UNKNOWN) {
             return context.getString(R.string.device_with_rssi, device.getName(), AmberUtils.formatRssi(device.getRssi()));
         }
 

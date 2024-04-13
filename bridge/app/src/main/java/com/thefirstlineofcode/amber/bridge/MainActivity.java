@@ -1,14 +1,16 @@
 package com.thefirstlineofcode.amber.bridge;
 
+import android.Manifest;
 import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
@@ -23,11 +25,14 @@ import com.google.android.material.navigation.NavigationView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements
 		NavigationView.OnNavigationItemSelectedListener, ILanNodeManager.Listener {
 	private static final Logger logger = LoggerFactory.getLogger(MainActivity.class);
+	
+	public static final int BLUETOOTH_PERMISSIONS_REQUEST_CODE = 200;
 	
 	private FloatingActionButton fab;
 	
@@ -35,10 +40,39 @@ public class MainActivity extends AppCompatActivity implements
 	private List<LanNode> lanNodes;
 	private LanNodesAdapter lanNodesAdapter;
 	
+	private BluetoothAdapter adapter;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
+		if ((checkSelfPermission(Manifest.permission.BLUETOOTH) ==
+				PackageManager.PERMISSION_DENIED) ||
+				(checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) ==
+						PackageManager.PERMISSION_DENIED) ||
+				(checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)  ==
+						PackageManager.PERMISSION_DENIED) ||
+				(checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
+						PackageManager.PERMISSION_DENIED) ||
+				(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+						PackageManager.PERMISSION_DENIED) ||
+				(checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
+						PackageManager.PERMISSION_DENIED)) {
+			requestPermissions(
+					new String[] {
+							Manifest.permission.BLUETOOTH,
+							Manifest.permission.BLUETOOTH_ADMIN,
+							Manifest.permission.BLUETOOTH_SCAN,
+							Manifest.permission.BLUETOOTH_CONNECT,
+							Manifest.permission.ACCESS_FINE_LOCATION,
+							Manifest.permission.ACCESS_COARSE_LOCATION
+					}, BLUETOOTH_PERMISSIONS_REQUEST_CODE);
+		} else {
+			onCreate();
+		}
+	}
+	
+	private void onCreate() {
 		setContentView(R.layout.activity_main);
 		
 		MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -69,13 +103,47 @@ public class MainActivity extends AppCompatActivity implements
 		ILanNodeManager lanNodeManager = ((ILanNodeManager)getApplication());
 		lanNodeManager.addListener(this);
 		
-		lanNodes = lanNodeManager.getLanNodes();
+		lanNodes = getLanNodesWithDevices(lanNodeManager.getLanNodes());
 		lanNodesAdapter = new LanNodesAdapter(this, lanNodes);
 		lanNodesAdapter.setHasStableIds(true);
 		
 		lanNodesView.setAdapter(lanNodesAdapter);
 		
 		logger.info("Amberbridge started.");
+	}
+	
+	private List<LanNode> getLanNodesWithDevices(LanNode[] lanNodes) {
+		List<LanNode> lanNodesWithDevices = new ArrayList<>();
+		
+		for (LanNode lanNode : lanNodes) {
+			AmberWatch device = AmberWatch.createInstance(getAdapter(), lanNode.getThing());
+			lanNodesWithDevices.add(new LanNode(lanNode.getLanId(), device));
+		}
+		
+		return lanNodesWithDevices;
+	}
+	
+	private BluetoothAdapter getAdapter() {
+		if (adapter == null)
+			adapter = BluetoothAdapter.getDefaultAdapter();
+		
+		return adapter;
+	}
+	
+	@Override
+	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+		
+		if (requestCode == BLUETOOTH_PERMISSIONS_REQUEST_CODE) {
+			onCreate();
+		} else {
+			new AlertDialog.Builder(this).
+					setTitle("Error").
+					setMessage("User denied permissions request. App will exit.").
+					setPositiveButton("Ok", (dialog, which) -> {
+						finish();
+					}).create().show();
+		}
 	}
 	
 	@Override
@@ -131,22 +199,15 @@ public class MainActivity extends AppCompatActivity implements
 	}
 	
 	@Override
-	public void deviceAdded(Device device) {
-		LanNode lanNode = new LanNode(Device.getThingId(device), device);
+	public void thingAdded(IBleThing thing) {
+		LanNode lanNode = new LanNode(null, AmberWatch.createInstance(getAdapter(), thing));
 		if (!lanNodes.contains(lanNode)) {
-			logger.info(String.format("Device added. Device: %s.", device));
+			logger.info(String.format("Device added. Device: %s.", thing));
 			lanNodes.add(lanNode);
 		}
 	}
 	
 	@Override
 	public void nodeAdded(String thingId, int lanId) {
-	}
-	
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-		super.onActivityResult(requestCode, resultCode, data);
-		
-		lanNodesAdapter.notifyDataSetChanged();
 	}
 }

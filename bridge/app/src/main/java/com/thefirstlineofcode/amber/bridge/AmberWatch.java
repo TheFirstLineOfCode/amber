@@ -1,52 +1,24 @@
 package com.thefirstlineofcode.amber.bridge;
 
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
-import android.widget.Toast;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
-public class Device {
-	public static final short RSSI_UNKNOWN = 0;
+public class AmberWatch extends BleThing implements IBleDevice {
+	private static final Logger logger = LoggerFactory.getLogger(AmberWatch.class);
 	
-	public static final UUID UUID_SERVICE_BATTERY = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb");
-	public static final UUID UUID_SERVICE_HEART_RATE = UUID.fromString("0000180d-0000-1000-8000-00805f9b34fb");
-	public static final UUID UUID_SERVICE_MOTION = UUID.fromString("00030000-78fc-48fe-8e23-433b3a1942d0");
-	
-	public static final UUID UUID_CHARACTERISTIC_BATTERY_LEVEL = UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb");
-	public static final UUID UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT = UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb");
-	public static final UUID UUID_CHARACTERISTIC_MOTION_STEP_COUNT = UUID.fromString("00030001-78fc-48fe-8e23-433b3a1942d0");
-	
-	private static final Logger logger = LoggerFactory.getLogger(Device.class);
-	
-	public interface StateListener {
-		void connected(BluetoothDevice device, BluetoothGatt gatt);
-		void disconnected(BluetoothDevice device);
-		void occurred(BluetoothDevice device, Error error);
-	}
-	
-	public enum Error {
-		FAILED_TO_CONNECT_TO_DEVICE,
-		SECURITY_EXCEPTION_HAS_THROWN
-	}
-	
-	public enum State {
-		NOT_CONNECTED,
-		CONNECTING,
-		CONNECTED
-	}
-	
-	private String name;
-	private String address;
 	private State state;
 	private List<StateListener> stateListeners;
 	
@@ -54,9 +26,13 @@ public class Device {
 	private int heartRate;
 	private int totalSteps;
 	
-	public Device(String name, String address) {
-		this.name = name;
-		this.address = address;
+	private boolean autoConnect;
+	
+	private BluetoothDevice bluetoothDevice;
+	
+	private AmberWatch(BluetoothDevice bluetoothDevice, String thingId, String name, String address) {
+		super(thingId, name, address);
+		this.bluetoothDevice = bluetoothDevice;
 		
 		state = State.NOT_CONNECTED;
 		stateListeners = new ArrayList<>();
@@ -64,14 +40,8 @@ public class Device {
 		batteryLevel = 50;
 		heartRate = 0;
 		totalSteps = 0;
-	}
-	
-	public String getName() {
-		return name;
-	}
-	
-	public String getAddress() {
-		return address;
+		
+		autoConnect = true;
 	}
 	
 	public int getBatteryLevel() {
@@ -87,32 +57,8 @@ public class Device {
 	}
 	
 	@Override
-	public boolean equals(Object obj) {
-		if (obj == this) {
-			return true;
-		}
-		if (!(obj instanceof Device)) {
-			return false;
-		}
-		if (((Device)obj).getAddress().equals(this.address)) {
-			return true;
-		}
-		
-		return false;
-	}
-	
-	@Override
-	public int hashCode() {
-		return address.hashCode() ^ 37;
-	}
-	
-	@Override
-	public String toString() {
-		return String.format("Device[%s-%s]", name, address);
-	}
-	
-	public static String getThingId(Device device) {
-		return String.format("%s-%s", device.getName(), device.getAddress());
+	public BluetoothDevice getBluetoothDevice() {
+		return bluetoothDevice;
 	}
 	
 	public void connect() {
@@ -129,7 +75,7 @@ public class Device {
 	
 	private void notifyErrorOccurred(BluetoothDevice device, Error error) {
 		for (StateListener stateListener : stateListeners) {
-			stateListener.occurred(device, error);
+			stateListener.occurred(this, error);
 		}
 	}
 	
@@ -140,6 +86,14 @@ public class Device {
 	
 	public boolean removeStateListener(StateListener stateListener) {
 		return stateListeners.remove(stateListener);
+	}
+	
+	public void setAutoConnect(boolean autoConnect) {
+		this.autoConnect = autoConnect;
+	}
+	
+	public boolean isAutoConnect() {
+		return autoConnect;
 	}
 	
 	private class GattCallback extends BluetoothGattCallback {
@@ -238,5 +192,24 @@ public class Device {
 			
 			return false;
 		}
+	}
+	
+	public static AmberWatch createInstance(BluetoothAdapter adapter, IBleThing thing) {
+		BluetoothDevice device = adapter.getRemoteDevice(thing.getAddress());
+		if (device == null)
+			throw new RuntimeException("Can't get remote device.");
+		
+		return new AmberWatch(device, thing.getThingId(), thing.getName(), thing.getAddress());
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		
+		if (o == null || getClass() != o.getClass())
+			return false;
+		
+		return super.equals(o);
 	}
 }
