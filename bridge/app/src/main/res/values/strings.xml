@@ -44,5 +44,12 @@
     <string name="device_connect">Connect...</string>
     <string name="device_disconnect">Disconnect</string>
     <string name="device_delete_device">Delete Device</string>
-
+    <string name="host_title_connected_host">Connected Host:</string>
+    <string name="host_connect">Connect</string>
+    <string name="host_configure_stream">Configure Stream</string>
+    <string name="stream_title_host">Host</string>
+    <string name="steam_title_port">Port</string>
+    <string name="stream_default_port">6222</string>
+    <string name="stream_title_enable_tls">Enable TLS</string>
+    <string name="stream_ok">Ok</string>
 </resources>

@@ -12,6 +12,13 @@ import android.os.Build;
 import androidx.core.app.ActivityCompat;
 
 import com.thefirstlineofcode.chalk.android.logger.LogConfigurator;
+import com.thefirstlineofcode.chalk.core.IChatClient;
+import com.thefirstlineofcode.chalk.core.StandardChatClient;
+import com.thefirstlineofcode.chalk.core.stream.StandardStreamConfig;
+import com.thefirstlineofcode.sand.client.actuator.ActuatorPlugin;
+import com.thefirstlineofcode.sand.client.concentrator.ConcentratorPlugin;
+import com.thefirstlineofcode.sand.client.ibtr.IbtrPlugin;
+import com.thefirstlineofcode.sand.client.sensor.SensorPlugin;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,14 +42,21 @@ public class MainApplication extends Application implements ILanNodeManager {
 	
 	private static final Logger logger = LoggerFactory.getLogger(MainApplication.class);
 	
+	private static MainApplication instance;
+	
 	private List<LanNode> lanNodes;
 	private List<Listener> listeners;
 	
 	private MainActivity mainActivity;
 	
+	private IChatClient chatClient;
+	
 	@Override
 	public void onCreate() {
 		super.onCreate();
+		
+		if (instance == null)
+			instance = this;
 		
 		File dataDir = getApplicationContext().getFilesDir();
 		new LogConfigurator().configure(dataDir.getAbsolutePath(), APP_NAME_AMBERBRIDGE, LogConfigurator.LogLevel.INFO);
@@ -52,6 +66,35 @@ public class MainApplication extends Application implements ILanNodeManager {
 		
 		listeners = new ArrayList<>();
 		lanNodes = loadLanNodes();
+		
+		chatClient = createChaClient();
+	}
+	
+	public IChatClient getChatClient() {
+		return chatClient;
+	}
+	
+	private IChatClient createChaClient() {
+		IChatClient chatClient = new StandardChatClient(getStreamConfig());
+		
+		registerPlugins(chatClient);
+		
+		return chatClient;
+	}
+	
+	private void registerPlugins(IChatClient chatClient) {
+		chatClient.register(IbtrPlugin.class);
+		chatClient.register(ConcentratorPlugin.class);
+		chatClient.register(SensorPlugin.class);
+		chatClient.register(ActuatorPlugin.class);
+	}
+	
+	private StandardStreamConfig getStreamConfig() {
+		return null;
+	}
+	
+	public static MainApplication getInstance() {
+		return instance;
 	}
 	
 	public List<LanNode> loadLanNodes() {
