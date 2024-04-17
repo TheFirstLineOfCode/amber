@@ -9,7 +9,7 @@ public interface ILanNodeManager {
 	LanNode[] getLanNodes();
 	void addThing(IBleThing thing);
 	void nodeAdded(String thingId, int lanId);
-	void addListener(Listener listener);
-	boolean removeListener(Listener listener);
-	void save();
+	void addLanNodeListener(Listener listener);
+	boolean removeLanNodeListener(Listener listener);
+	void saveLanNodes();
 }

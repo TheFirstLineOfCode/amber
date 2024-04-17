@@ -7,50 +7,50 @@
     tools:context="com.thefirstlineofcode.amber.bridge.LoginActivity">
 
     <TextView
-        android:id="@+id/tv_connected_host"
+        android:id="@+id/tv_host"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
+        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="128dp"
-        android:layout_marginBottom="16dp"
-        android:text="@string/host_title_connected_host" />
+        android:layout_marginTop="64dp"
+        android:layout_marginLeft="32dp"
+        android:text="@string/host_title_host" />
 
     <AutoCompleteTextView
-        android:id="@+id/actv_connected_host"
+        android:id="@+id/actv_hosts"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:ems="10"
         android:importantForAutofill="no"
         android:inputType="textPersonName"
         android:minHeight="48dp"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintStart_toEndOf="@+id/tv_connected_host"
-        app:layout_constraintBaseline_toBaselineOf="@+id/tv_connected_host"
+        android:layout_marginLeft="16dp"
+        app:layout_constraintStart_toEndOf="@+id/tv_host"
+        app:layout_constraintBaseline_toBaselineOf="@+id/tv_host"
         app:layout_constraintHorizontal_bias="0.0"
         tools:ignore="LabelFor,SpeakableTextPresentCheck" />
 
     <Button
-        android:id="@+id/bt_use_configuration"
+        android:id="@+id/bt_connect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         android:autoLink="all"
         android:importantForAutofill="no"
         android:text="@string/host_connect"
         android:textAllCaps="false"
-        app:layout_constraintStart_toStartOf="@+id/actv_connected_host"
-        app:layout_constraintTop_toBottomOf="@+id/actv_connected_host" />
+        android:layout_marginTop="16dp"
+        app:layout_constraintStart_toStartOf="@+id/actv_hosts"
+        app:layout_constraintTop_toBottomOf="@+id/actv_hosts" />
 
     <TextView
         android:id="@+id/tv_configure_stream"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
         android:minHeight="48dp"
+        android:layout_marginLeft="16dp"
         android:onClick="startConfigureStreamActivity"
         android:text="@string/host_configure_stream"
-        app:layout_constraintStart_toStartOf="@+id/actv_connected_host"
-        app:layout_constraintTop_toBottomOf="@+id/bt_use_configuration" />
+        app:layout_constraintStart_toEndOf="@+id/bt_connect"
+        app:layout_constraintBaseline_toBaselineOf="@+id/bt_connect" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

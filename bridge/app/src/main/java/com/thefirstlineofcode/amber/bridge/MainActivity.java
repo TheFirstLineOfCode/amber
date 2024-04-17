@@ -101,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements
 		lanNodesView.setLayoutManager(new LinearLayoutManager(this));
 		
 		ILanNodeManager lanNodeManager = ((ILanNodeManager)getApplication());
-		lanNodeManager.addListener(this);
+		lanNodeManager.addLanNodeListener(this);
 		
 		lanNodes = getLanNodesWithDevices(lanNodeManager.getLanNodes());
 		lanNodesAdapter = new LanNodesAdapter(this, lanNodes);

@@ -44,12 +44,20 @@
     <string name="device_connect">Connect...</string>
     <string name="device_disconnect">Disconnect</string>
     <string name="device_delete_device">Delete Device</string>
-    <string name="host_title_connected_host">Connected Host:</string>
+    <string name="host_title_host">Host:</string>
     <string name="host_connect">Connect</string>
     <string name="host_configure_stream">Configure Stream</string>
-    <string name="stream_title_host">Host</string>
-    <string name="steam_title_port">Port</string>
+    <string name="stream_title_host">Host:</string>
+    <string name="steam_title_port">Port:</string>
     <string name="stream_default_port">6222</string>
     <string name="stream_title_enable_tls">Enable TLS</string>
     <string name="stream_ok">Ok</string>
+    <string name="auto_connect" translatable="false">auto-connect</string>
+    <string name="stream_configuration" translatable="false">stream-configuration</string>
+    <string name="host_must_be_an_ipv4_address">Host must be a valid IPv4 address.</string>
+    <string name="port_cant_be_null">Port can\'t be null.</string>
+    <string name="port_must_be_an_positive_integer">Port must be a positive integer.</string>
+    <string name="configured_host">configured-host</string>
+    <string name="available_hosts">available-hosts</string>
+    <string name="current_host">current-host</string>
 </resources>

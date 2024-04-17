@@ -243,7 +243,7 @@ public class DiscoveryActivity extends AppCompatActivity
 		if (status == Status.SCANNING) {
 			logger.warn("Try to bond device in Status: {}.", status);
 			Toast.makeText(this,
-					String.format("Try to bond device in Status:%s", status),
+					String.format("Try to bond device in Status: %s.", status),
 					Toast.LENGTH_SHORT).show();
 			return;
 		}
@@ -289,7 +289,7 @@ public class DiscoveryActivity extends AppCompatActivity
 		ILanNodeManager lanNodeManager = (MainApplication)getApplication();
 		lanNodeManager.addThing(
 				new BleThing(String.format("amber-%s", ThingsUtils.generateRandomId(9)), device.getName(), device.getAddress()));
-		lanNodeManager.save();
+		lanNodeManager.saveLanNodes();
 	}
 	
 	public void onStartButtonClick(View button) {
