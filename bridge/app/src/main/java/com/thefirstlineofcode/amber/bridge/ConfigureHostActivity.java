@@ -84,7 +84,6 @@ public class ConfigureHostActivity extends AppCompatActivity {
 		
 		tvConfigureStream = findViewById(R.id.tv_configure_stream);
 		int selectedHost = atvHosts.getListSelection();
-		tvConfigureStream.setEnabled(selectedHost != ListView.INVALID_POSITION);
 		tvConfigureStream.setOnClickListener(new ConfigureStreamTextViewListener());
 	}
 	
@@ -108,6 +107,18 @@ public class ConfigureHostActivity extends AppCompatActivity {
 				if (!isValidHostAddress(ConfigureHostActivity.this, host))
 					return;
 				
+				IHostConfigurationManager hostConfigurationManager = MainApplication.getInstance();
+				if (hostConfigurationManager.getHostConfiguration(host) == null) {
+					hostConfigurationManager.addHostConfiguration(new HostConfiguration(host));
+				}
+				
+				if (!host.equals(hostConfigurationManager.getCurrentHost())) {
+					hostConfigurationManager.setCurrentHost(host);
+				}
+				
+				if (hostConfigurationManager.isHostConfigurationsChanged())
+					hostConfigurationManager.saveHostConfigurations();
+				
 				Intent iotBgServiceIntent = new Intent(ConfigureHostActivity.this, IotBgService.class);
 				iotBgServiceIntent.putExtra(ConfigureHostActivity.this.getString(R.string.current_host), host);
 				startService(iotBgServiceIntent);
@@ -120,7 +131,24 @@ public class ConfigureHostActivity extends AppCompatActivity {
 	private boolean isValidHostAddress(Context context, String host) {
 		if (host == null) {
 			runOnUiThread(() -> {
-				Toast.makeText(context, "Error: Can't connect to null host.", Toast.LENGTH_SHORT).show();
+				Toast.makeText(context, "Error: Null host.", Toast.LENGTH_SHORT).show();
+			});
+			
+			return false;
+		}
+		
+		try {
+			InetAddress inetAddress = Inet4Address.getByName(host);
+			if (!(inetAddress instanceof Inet4Address)) {
+				runOnUiThread(() -> {
+					Toast.makeText(context, getString(R.string.host_must_be_an_ipv4_address), Toast.LENGTH_SHORT).show();
+				});
+				
+				return false;
+			}
+		} catch (Exception e) {
+			runOnUiThread(() -> {
+				Toast.makeText(this, getString(R.string.host_must_be_an_ipv4_address), Toast.LENGTH_LONG).show();
 			});
 			
 			return false;
@@ -132,23 +160,6 @@ public class ConfigureHostActivity extends AppCompatActivity {
 	@Nullable
 	private String getHostFromHostControl() {
 		return atvHosts.getText().length() == 0 ? null : atvHosts.getText().toString();
-	}
-	
-	private String[] getHosts(HostConfiguration[] hostConfigurations) {
-		if (hostConfigurations == null || hostConfigurations.length == 0)
-			return new String[0];
-		
-		String[] hosts = new String[hostConfigurations.length];
-		
-		for (int i = 0; i < hostConfigurations.length; i++) {
-			hosts[i] = hostConfigurations[i].getHost();
-		}
-		
-		return hosts;
-	}
-	
-	private String[] getHostNames(String hostNames) {
-		return hostNames.split(",");
 	}
 	
 	@Override
@@ -172,7 +183,11 @@ public class ConfigureHostActivity extends AppCompatActivity {
 	}
 	
 	private boolean allPermissionsGranted(int[] grantResults) {
-		for (int grantResult : grantResults) {
+		for (int i = 0; i < grantResults.length; i++) {
+			if (i == 1 || i == 2)
+				continue;
+			
+			int grantResult = grantResults[i];
 			if (grantResult != PackageManager.PERMISSION_GRANTED)
 				return false;
 		}

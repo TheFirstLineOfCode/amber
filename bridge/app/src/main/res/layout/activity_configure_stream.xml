@@ -7,25 +7,35 @@
     tools:context="com.thefirstlineofcode.sand.demo.app.android.ConfigureStreamActivity">
 
     <TextView
-        android:id="@+id/tv_host"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:ems="10"
-        android:minHeight="48dp"
-        app:layout_constraintBottom_toTopOf="@+id/et_port"
-        app:layout_constraintEnd_toEndOf="@+id/et_port"
-        app:layout_constraintStart_toStartOf="@+id/et_port"
-        tools:ignore="LabelFor" />
-
-    <TextView
         android:id="@+id/tv_title_host"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:text="@string/stream_title_host"
-        app:layout_constraintBaseline_toBaselineOf="@+id/tv_host"
-        app:layout_constraintEnd_toStartOf="@+id/tv_host" />
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="64dp"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="64dp"
+        android:text="@string/stream_title_host" />
+
+    <TextView
+        android:id="@+id/tv_host"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:ems="10"
+        android:minHeight="48dp"
+        tools:ignore="LabelFor"
+        app:layout_constraintBaseline_toBaselineOf="@+id/tv_title_host"
+        app:layout_constraintStart_toEndOf="@+id/tv_title_host" />
+
+    <TextView
+        android:id="@+id/tv_title_port"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:importantForAutofill="no"
+        android:text="@string/steam_title_port"
+        android:layout_marginTop="64dp"
+        app:layout_constraintEnd_toEndOf="@+id/tv_title_host"
+        app:layout_constraintTop_toBottomOf="@+id/tv_title_host" />
 
     <EditText
         android:id="@+id/et_port"
@@ -35,51 +45,40 @@
         android:importantForAutofill="no"
         android:inputType="textPersonName"
         android:minHeight="48dp"
+        android:layout_marginStart="16dp"
         android:text="@string/stream_default_port"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="LabelFor" />
-
-    <TextView
-        android:id="@+id/tv_title_port"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:importantForAutofill="no"
-        android:text="@string/steam_title_port"
-        app:layout_constraintBaseline_toBaselineOf="@+id/et_port"
-        app:layout_constraintEnd_toStartOf="@+id/et_port" />
-
-    <CheckBox
-        android:id="@+id/cb_enable_tls"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:minWidth="48dp"
-        android:minHeight="48dp"
-        app:layout_constraintStart_toStartOf="@+id/et_port"
-        app:layout_constraintTop_toBottomOf="@+id/et_port" />
+        tools:ignore="LabelFor"
+        app:layout_constraintBaseline_toBaselineOf="@+id/tv_title_port"
+        app:layout_constraintStart_toEndOf="@+id/tv_title_port" />
 
     <TextView
         android:id="@+id/tv_title_tls_required"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:importantForAutofill="no"
-        android:text="@string/stream_title_enable_tls"
-        app:layout_constraintBaseline_toBaselineOf="@+id/cb_enable_tls"
-        app:layout_constraintEnd_toEndOf="@+id/tv_title_port" />
+        android:text="@string/stream_title_tls_required"
+        android:layout_marginTop="64dp"
+        app:layout_constraintEnd_toEndOf="@+id/tv_title_port"
+        app:layout_constraintTop_toBottomOf="@+id/tv_title_port" />
+
+    <CheckBox
+        android:id="@+id/cb_tls_required"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="48dp"
+        android:minHeight="48dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintBaseline_toBaselineOf="@+id/tv_title_tls_required"
+        app:layout_constraintStart_toEndOf="@+id/tv_title_tls_required" />
 
     <Button
         android:id="@+id/bt_ok"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         android:onClick="configureStream"
         android:text="@string/stream_ok"
         android:textAllCaps="false"
-        app:layout_constraintEnd_toEndOf="@+id/et_port"
-        app:layout_constraintStart_toStartOf="@+id/et_port"
-        app:layout_constraintTop_toBottomOf="@+id/cb_enable_tls" />
+        android:layout_marginTop="64dp"
+        app:layout_constraintStart_toStartOf="@+id/cb_tls_required"
+        app:layout_constraintTop_toBottomOf="@+id/cb_tls_required" />
 </androidx.constraintlayout.widget.ConstraintLayout>

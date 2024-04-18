@@ -47,10 +47,10 @@
     <string name="host_title_host">Host:</string>
     <string name="host_connect">Connect</string>
     <string name="host_configure_stream">Configure Stream</string>
-    <string name="stream_title_host">Host:</string>
-    <string name="steam_title_port">Port:</string>
+    <string name="stream_title_host">Host</string>
+    <string name="steam_title_port">Port</string>
     <string name="stream_default_port">6222</string>
-    <string name="stream_title_enable_tls">Enable TLS</string>
+    <string name="stream_title_tls_required">TLS Required</string>
     <string name="stream_ok">Ok</string>
     <string name="auto_connect" translatable="false">auto-connect</string>
     <string name="stream_configuration" translatable="false">stream-configuration</string>

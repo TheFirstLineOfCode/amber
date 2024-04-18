@@ -5,7 +5,7 @@ public class HostConfiguration {
 	private int port;
 	private boolean tlsRequired;
 	private String thingName;
-	private String credentials;
+	private String thingCredentials;
 	
 	public HostConfiguration() {
 		this(null);
@@ -19,6 +19,8 @@ public class HostConfiguration {
 		this.host = host;
 		this.port = port;
 		this.tlsRequired = tlsRequired;
+		thingName = null;
+		thingCredentials = null;
 	}
 	
 	public String getHost() {
@@ -53,11 +55,11 @@ public class HostConfiguration {
 		this.thingName = thingName;
 	}
 	
-	public String getCredentials() {
-		return credentials;
+	public String getThingCredentials() {
+		return thingCredentials;
 	}
 	
-	public void setCredentials(String credentials) {
-		this.credentials = credentials;
+	public void setThingCredentials(String thingCredentials) {
+		this.thingCredentials = thingCredentials;
 	}
 }

@@ -17,28 +17,34 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 
 public class ConfigureStreamActivity extends AppCompatActivity {
+	private String configuredHost;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_configure_stream);
 		
 		Intent intent = getIntent();
-		String sStreamConfiguration = intent.getStringExtra(getString(R.string.stream_configuration));
-		if (sStreamConfiguration == null)
-			throw new RuntimeException("Can't get stream configuration from intent extra");
+		configuredHost = intent.getStringExtra(getString(R.string.configured_host));
+		if (configuredHost == null)
+			throw new RuntimeException("Can't get configured host from intent extra");
 		
-		StandardStreamConfig streamConfig = readStreamConfiguration(sStreamConfiguration);
+		HostConfiguration hostConfiguration = MainApplication.getInstance().getHostConfiguration(configuredHost);
+		if (hostConfiguration == null) {
+			hostConfiguration = new HostConfiguration(configuredHost);
+			MainApplication.getInstance().addHostConfiguration(hostConfiguration);
+			
+			if (MainApplication.getInstance().isHostConfigurationsChanged())
+				MainApplication.getInstance().saveHostConfigurations();
+		}
+		
 		TextView tvHost = findViewById(R.id.tv_host);
-		tvHost.setText(streamConfig.getHost());
+		tvHost.setText(hostConfiguration.getHost());
 		EditText etPort = findViewById(R.id.et_port);
-		etPort.setText(String.valueOf(streamConfig.getPort()));
+		etPort.setText(String.valueOf(hostConfiguration.getPort()));
 
-		CheckBox cbEnableTls = findViewById(R.id.cb_enable_tls);
-		cbEnableTls.setChecked(streamConfig.isTlsPreferred());
-	}
-	
-	private StandardStreamConfig readStreamConfiguration(String sStreamConfiguration) {
-		return null;
+		CheckBox cbTlsRequired = findViewById(R.id.cb_tls_required);
+		cbTlsRequired.setChecked(hostConfiguration.isTlsRequired());
 	}
 	
 	public void configureStream(View view) {
@@ -73,14 +79,24 @@ public class ConfigureStreamActivity extends AppCompatActivity {
 
 			return;
 		}
-
-		CheckBox cbEnableTls = findViewById(R.id.cb_enable_tls);
 		
-		TextView tvHost = findViewById(R.id.tv_host);
-		StandardStreamConfig streamConfig = new StandardStreamConfig(
-				tvHost.getText().toString(), port);
-		streamConfig.setTlsPreferred(cbEnableTls.isChecked());
-
+		HostConfiguration hostConfiguration = MainApplication.getInstance().getHostConfiguration(configuredHost);
+		if (hostConfiguration == null)
+			throw new RuntimeException(String.format("Failed get host configuration for host %s.", configuredHost));
+		
+		boolean hostConfigurationChanged = false;
+		if (hostConfiguration.getPort() != port) {
+			hostConfiguration.setPort(port);
+			hostConfigurationChanged = true;
+		}
+		
+		CheckBox cbTlsRequired = findViewById(R.id.cb_tls_required);
+		boolean tlsRequired = cbTlsRequired.isChecked();
+		if (hostConfiguration.isTlsRequired() != tlsRequired) {
+			hostConfiguration.setTlsRequired(tlsRequired);
+			hostConfigurationChanged = true;
+		}
+		
 		finish();
 	}
 }

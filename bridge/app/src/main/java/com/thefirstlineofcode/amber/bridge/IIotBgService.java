@@ -6,5 +6,5 @@ public interface IIotBgService {
 	HostConfiguration getHostConfiguration();
 	RegisteredThing register();
 	boolean isRegistered();
-	void connectHost();
+	void connectToHost();
 }

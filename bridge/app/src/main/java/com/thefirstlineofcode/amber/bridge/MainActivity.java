@@ -3,10 +3,14 @@ package com.thefirstlineofcode.amber.bridge;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.MenuItem;
 import android.view.View;
 
@@ -21,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
+import com.thefirstlineofcode.sand.protocols.thing.RegisteredThing;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements
-		NavigationView.OnNavigationItemSelectedListener, ILanNodeManager.Listener {
+		NavigationView.OnNavigationItemSelectedListener,
+		ILanNodeManager.Listener, ServiceConnection {
 	private static final Logger logger = LoggerFactory.getLogger(MainActivity.class);
 	
 	public static final int BLUETOOTH_PERMISSIONS_REQUEST_CODE = 200;
@@ -41,6 +47,8 @@ public class MainActivity extends AppCompatActivity implements
 	private LanNodesAdapter lanNodesAdapter;
 	
 	private BluetoothAdapter adapter;
+	
+	private IIotBgService iotBgService;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -108,6 +116,9 @@ public class MainActivity extends AppCompatActivity implements
 		lanNodesAdapter.setHasStableIds(true);
 		
 		lanNodesView.setAdapter(lanNodesAdapter);
+		
+		Intent bindIotBgServiceIntent = new Intent(this, IotBgService.class);
+		bindService(bindIotBgServiceIntent, this, Context.BIND_AUTO_CREATE);
 		
 		logger.info("Amberbridge started.");
 	}
@@ -209,5 +220,30 @@ public class MainActivity extends AppCompatActivity implements
 	
 	@Override
 	public void nodeAdded(String thingId, int lanId) {
+	}
+	
+	@Override
+	public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+		iotBgService = ((IotBgBinder)iBinder).getService();
+		
+		/* if (!iotBgService.isRegistered()) {
+			RegisteredThing registeredThing = iotBgService.register();
+			HostConfiguration hostConfiguration = iotBgService.getHostConfiguration();
+			if (!registeredThing.getThingName().equals(hostConfiguration.getThingName()))
+				throw new RuntimeException("Host configuration not be updated.");
+			
+			MainApplication.getInstance().updateHostConfiguration(hostConfiguration);
+			MainApplication.getInstance().saveHostConfigurations();
+		}*/
+		if (logger.isInfoEnabled())
+			logger.info(String.format("Bind to IoT background service. Connected to host: %s.", iotBgService.getHostConfiguration().getHost()));
+		
+		iotBgService.connectToHost();
+	}
+	
+	@Override
+	public void onServiceDisconnected(ComponentName componentName) {
+		logger.info("IoT background service has disconnected in main activity.");
+		iotBgService = null;
 	}
 }

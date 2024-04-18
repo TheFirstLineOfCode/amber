@@ -29,19 +29,20 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
 public class MainApplication extends Application implements ILanNodeManager, IHostConfigurationManager {
 	public static final String APP_NAME_AMBERBRIDGE = "amberbridge";
 	private static final String FILE_PATH_LAN_NODES_PROPERTIES = ".com.thefirstlineofcode.amber/lan-nodes.properties";
-	private static final String FILE_HOSTS_PROPERTIES = ".com.thefirstlineofcode.amber/hosts.properties";
+	private static final String FILE_PATH_HOSTS_PROPERTIES = ".com.thefirstlineofcode.amber/hosts.properties";
 	
 	private static final Logger logger = LoggerFactory.getLogger(MainApplication.class);
 	
@@ -52,9 +53,8 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 	
 	private MainActivity mainActivity;
 	
-	private IChatClient chatClient;
-	
 	private List<HostConfiguration> hostConfigurations;
+	private String currentHost;
 	private boolean hostConfigurationsChanged;
 	
 	@Override
@@ -79,7 +79,7 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 	
 	private List<HostConfiguration> loadHostConfigurations() {
 		File dataDir = MainApplication.getInstance().getApplicationContext().getFilesDir();
-		File hostsPropertiesFile = dataDir.toPath().resolve(FILE_HOSTS_PROPERTIES).toFile();
+		File hostsPropertiesFile = dataDir.toPath().resolve(FILE_PATH_HOSTS_PROPERTIES).toFile();
 		
 		if (!hostsPropertiesFile.exists())
 			return null;
@@ -92,7 +92,7 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 			if (availableHosts == null || availableHosts.length == 0)
 				return null;
 			
-			String currentHost = hostsProperties.getProperty(getString(R.string.current_host));
+			currentHost = hostsProperties.getProperty(getString(R.string.current_host));
 			if (currentHost == null)
 				throw new RuntimeException("Null current host.");
 			
@@ -101,9 +101,9 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 				String host = availableHosts[i];
 				HostConfiguration hostConfiguration = new HostConfiguration(host);
 				
-				String streamConfiguration = hostsProperties.getProperty(host);
-				if (streamConfiguration != null) {
-					StringTokenizer st = new StringTokenizer(streamConfiguration, ",");
+				String hostConfigurationString = hostsProperties.getProperty(host);
+				if (hostConfigurationString != null) {
+					StringTokenizer st = new StringTokenizer(hostConfigurationString, ",");
 					
 					int port = Integer.parseInt(st.nextToken());
 					boolean tlsRequired = Boolean.parseBoolean(st.nextToken());
@@ -116,11 +116,13 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 						// Ignore
 					} else if (st.countTokens() == 4) {
 						hostConfiguration.setThingName(st.nextToken());
-						hostConfiguration.setCredentials(st.nextToken());
+						hostConfiguration.setThingCredentials(st.nextToken());
 					} else {
 						throw new RuntimeException("Illegal host configuration string.");
 					}
 				}
+				
+				hostConfigurations[i] = hostConfiguration;
 			}
 			
 			return Arrays.asList(hostConfigurations);
@@ -130,31 +132,6 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 			
 			return null;
 		}
-	}
-	
-	public IChatClient getChatClient() {
-		return chatClient;
-	}
-	
-	private IChatClient createChaClient(String host) {
-		IChatClient chatClient = new StandardChatClient(getStreamConfig(host));
-		
-		registerPlugins(chatClient);
-		
-		return chatClient;
-	}
-	
-	private StandardStreamConfig getStreamConfig(String host) {
-		HostConfiguration hostConfiguration = getHostConfiguration(host);
-		
-		return new StandardStreamConfig(hostConfiguration.getHost(), hostConfiguration.getPort(), hostConfiguration.isTlsRequired());
-	}
-	
-	private void registerPlugins(IChatClient chatClient) {
-		chatClient.register(IbtrPlugin.class);
-		chatClient.register(ConcentratorPlugin.class);
-		chatClient.register(SensorPlugin.class);
-		chatClient.register(ActuatorPlugin.class);
 	}
 	
 	public static MainApplication getInstance() {
@@ -263,7 +240,7 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 		try {
 			lanNodesProperties.store(new BufferedWriter(new FileWriter(lanNodesPropertiesFile)), null);
 		} catch (IOException e) {
-			logger.error("Can't load LAN nodes from LAN nodes properties file. We will remove LAN nodes properties file and your all LAN nodes data will lost.");
+			logger.error("Can't save LAN nodes to LAN nodes properties file. We will remove LAN nodes properties file and your all LAN nodes data will lost.");
 			throw new RuntimeException("Can't save LAN nodes.");
 		}
 	}
@@ -329,11 +306,19 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 	
 	@Override
 	public HostConfiguration getHostConfiguration(String host) {
+		for (HostConfiguration hostConfiguration : hostConfigurations) {
+			if (hostConfiguration.getHost().equals(host))
+				return hostConfiguration;
+		}
+		
 		return null;
 	}
 	
 	@Override
 	public void addHostConfiguration(HostConfiguration hostConfiguration) {
+		if (getHostConfiguration(hostConfiguration.getHost()) != null)
+			throw new IllegalArgumentException(String.format("Host %s has already existed.", hostConfiguration.getHost()));
+		
 		hostConfigurations.add(hostConfiguration);
 		hostConfigurationsChanged = true;
 	}
@@ -348,7 +333,79 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 		hostConfigurationsChanged = true;
 	}
 	
-	private int findHostConfiguration(String host) {
+	@Override
+	public boolean isHostConfigurationsChanged() {
+		return hostConfigurationsChanged;
+	}
+	
+	@Override
+	public void saveHostConfigurations() {
+		if (!hostConfigurationsChanged)
+			return;
+		
+		Properties hostConfigurationsProperties = new Properties();
+		
+		String[] hosts = getAvailableHosts();
+		if (hosts == null || hosts.length == 0)
+			throw new RuntimeException("No available hosts.");
+		
+		StringBuilder sbAvailbleHosts = new StringBuilder();
+		Map<String, String> hostConfigurationsMap = new HashMap<>();
+		for (String host : hosts) {
+			sbAvailbleHosts.append(host).append(",");
+			HostConfiguration hostConfiguration = getHostConfiguration(host);
+			if (hostConfiguration == null)
+				throw new RuntimeException(String.format("Failed to get host configuration for host %s.", host));
+			
+			hostConfigurationsMap.put(host, getHostConfigurationString(hostConfiguration));
+		}
+		sbAvailbleHosts.deleteCharAt(sbAvailbleHosts.length() - 1);
+		
+		hostConfigurationsProperties.put(getString(R.string.available_hosts), sbAvailbleHosts.toString());
+		hostConfigurationsProperties.put(getString(R.string.current_host), currentHost);
+		
+		File dataDir = getApplicationContext().getFilesDir();
+		File hostsPropertiesFile = dataDir.toPath().resolve(FILE_PATH_HOSTS_PROPERTIES).toFile();
+		
+		if (!hostsPropertiesFile.getParentFile().exists()) {
+			try {
+				Files.createDirectories(hostsPropertiesFile.getParentFile().toPath());
+			} catch (IOException e) {
+				throw new RuntimeException(String.format("Can't create path: %s",
+						hostsPropertiesFile.getParentFile().getAbsolutePath()), e);
+			}
+		}
+		
+		try {
+			hostConfigurationsProperties.store(new BufferedWriter(new FileWriter(hostsPropertiesFile)), null);
+		} catch (IOException e) {
+			logger.error("Can't save host configurations to host configurations properties file. We will remove host configurations properties file and your all host configurations data will lost.");
+			throw new RuntimeException("Can't save host configurations.");
+		}
+	}
+	
+	private String getHostConfigurationString(HostConfiguration hostConfiguration) {
+		StringBuilder sbHostConfigurationString = new StringBuilder();
+		
+		sbHostConfigurationString.
+				append(hostConfiguration.getPort()).
+				append(",").
+				append(hostConfiguration.isTlsRequired());
+		
+		if (hostConfiguration.getThingName() != null) {
+			sbHostConfigurationString.append(",").append(hostConfiguration.getThingName());
+			
+			if (hostConfiguration.getThingCredentials() == null)
+				throw new RuntimeException("Null thing credentials.");
+			
+			sbHostConfigurationString.append(",").append(hostConfiguration.getThingCredentials());
+		}
+		
+		return sbHostConfigurationString.toString();
+	}
+	
+	@Override
+	public int findHostConfiguration(String host) {
 		for (int i = 0; i < hostConfigurations.size(); i++) {
 			if (hostConfigurations.get(i).getHost().equals(host))
 				return i;
@@ -360,12 +417,27 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 	@Override
 	public String[] getAvailableHosts() {
 		if (hostConfigurations == null || hostConfigurations.size() == 0)
-			return null;
+			return new String[0];
 		
 		String[] availableHosts = new String[hostConfigurations.size()];
 		for (int i = 0; i < availableHosts.length; i++)
 			availableHosts[i] = hostConfigurations.get(i).getHost();
 		
 		return availableHosts;
+	}
+	
+	@Override
+	public void setCurrentHost(String host) {
+		if (host.equals(currentHost))
+			return;
+		
+		this.currentHost = host;
+		hostConfigurationsChanged = true;
+	
+	}
+	
+	@Override
+	public String getCurrentHost() {
+		return currentHost;
 	}
 }
