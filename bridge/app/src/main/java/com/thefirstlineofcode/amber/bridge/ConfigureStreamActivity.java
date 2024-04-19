@@ -97,6 +97,11 @@ public class ConfigureStreamActivity extends AppCompatActivity {
 			hostConfigurationChanged = true;
 		}
 		
+		if (hostConfigurationChanged) {
+			MainApplication.getInstance().updateHostConfiguration(hostConfiguration);
+			MainApplication.getInstance().saveHostConfigurations();
+		}
+		
 		finish();
 	}
 }

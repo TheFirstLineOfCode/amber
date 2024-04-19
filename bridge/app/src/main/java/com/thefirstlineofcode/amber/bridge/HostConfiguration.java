@@ -7,15 +7,22 @@ public class HostConfiguration {
 	private String thingName;
 	private String thingCredentials;
 	
-	public HostConfiguration() {
-		this(null);
-	}
-	
 	public HostConfiguration(String host) {
 		this(host, 6222, false);
 	}
 	
+	public HostConfiguration(HostConfiguration hostConfiguration) {
+		this.host = hostConfiguration.getHost();
+		this.port = hostConfiguration.getPort();
+		this.tlsRequired = hostConfiguration.isTlsRequired();
+		this.thingName = hostConfiguration.getThingName();
+		this.thingCredentials = hostConfiguration.getThingCredentials();
+	}
+	
 	public HostConfiguration(String host, int port, boolean tlsRequired) {
+		if (host == null)
+			throw new IllegalArgumentException("Null host.");
+		
 		this.host = host;
 		this.port = port;
 		this.tlsRequired = tlsRequired;

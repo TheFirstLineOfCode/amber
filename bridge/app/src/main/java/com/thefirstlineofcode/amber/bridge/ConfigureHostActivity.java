@@ -11,7 +11,6 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -79,12 +78,37 @@ public class ConfigureHostActivity extends AppCompatActivity {
 		atvHosts.setThreshold(2);
 		atvHosts.setAdapter(hostsAdapter);
 		
+		atvHosts.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				if (!atvHosts.isPopupShowing())
+					atvHosts.showDropDown();
+			}
+		});
+		
+		setCurrentHostInControl(availableHosts);
+		
 		btConnect = findViewById(R.id.bt_connect);
 		btConnect.setOnClickListener(new ConnectButtonListener());
 		
 		tvConfigureStream = findViewById(R.id.tv_configure_stream);
-		int selectedHost = atvHosts.getListSelection();
 		tvConfigureStream.setOnClickListener(new ConfigureStreamTextViewListener());
+	}
+	
+	private void setCurrentHostInControl(String[] availableHosts) {
+		String currentHost = MainApplication.getInstance().getCurrentHost();
+		if (currentHost == null && availableHosts != null && availableHosts.length == 1)
+			currentHost = availableHosts[0];
+		atvHosts.setText(currentHost);
+	}
+	
+	private int findCurrentHost(String[] availableHosts, String currentHost) {
+		for (int i = 0; i < availableHosts.length; i++) {
+			if (availableHosts[i].equals(currentHost))
+				return i;
+		}
+		
+		return -1;
 	}
 	
 	private class ConfigureStreamTextViewListener implements View.OnClickListener {
@@ -94,7 +118,7 @@ public class ConfigureHostActivity extends AppCompatActivity {
 			if (!isValidHostAddress(ConfigureHostActivity.this, host))
 				return;
 			
-			Intent configureSteamActivityIntent = new Intent(ConfigureHostActivity.this, ConfigureHostActivity.class);
+			Intent configureSteamActivityIntent = new Intent(ConfigureHostActivity.this, ConfigureStreamActivity.class);
 			configureSteamActivityIntent.putExtra(getString(R.string.configured_host), host);
 			startActivity(configureSteamActivityIntent);
 		}

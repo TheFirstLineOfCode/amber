@@ -93,6 +93,10 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 				return null;
 			
 			currentHost = hostsProperties.getProperty(getString(R.string.current_host));
+			if (currentHost == null && (availableHosts != null && availableHosts.length == 1)) {
+				currentHost = availableHosts[0];
+			}
+			
 			if (currentHost == null)
 				throw new RuntimeException("Null current host.");
 			
@@ -104,6 +108,7 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 				String hostConfigurationString = hostsProperties.getProperty(host);
 				if (hostConfigurationString != null) {
 					StringTokenizer st = new StringTokenizer(hostConfigurationString, ",");
+					int countToken = st.countTokens();
 					
 					int port = Integer.parseInt(st.nextToken());
 					boolean tlsRequired = Boolean.parseBoolean(st.nextToken());
@@ -112,9 +117,9 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 					hostConfiguration.setTlsRequired(tlsRequired);
 					
 					hostConfigurations[i] = hostConfiguration;
-					if (st.countTokens() == 2) {
+					if (countToken == 2) {
 						// Ignore
-					} else if (st.countTokens() == 4) {
+					} else if (countToken == 4) {
 						hostConfiguration.setThingName(st.nextToken());
 						hostConfiguration.setThingCredentials(st.nextToken());
 					} else {
@@ -297,7 +302,7 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 		return true;
 	}
 	
-	public String[] getAvailableHosts(String hosts) {
+	private String[] getAvailableHosts(String hosts) {
 		if (hosts == null || hosts.length() == 0)
 			return null;
 		
@@ -306,9 +311,12 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 	
 	@Override
 	public HostConfiguration getHostConfiguration(String host) {
+		if (hostConfigurations == null)
+			return null;
+		
 		for (HostConfiguration hostConfiguration : hostConfigurations) {
 			if (hostConfiguration.getHost().equals(host))
-				return hostConfiguration;
+				return new HostConfiguration(hostConfiguration);
 		}
 		
 		return null;
@@ -316,10 +324,13 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 	
 	@Override
 	public void addHostConfiguration(HostConfiguration hostConfiguration) {
+		if (hostConfigurations == null)
+			hostConfigurations = new ArrayList<>();
+		
 		if (getHostConfiguration(hostConfiguration.getHost()) != null)
 			throw new IllegalArgumentException(String.format("Host %s has already existed.", hostConfiguration.getHost()));
 		
-		hostConfigurations.add(hostConfiguration);
+		hostConfigurations.add(new HostConfiguration(hostConfiguration));
 		hostConfigurationsChanged = true;
 	}
 	
@@ -329,7 +340,7 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 		if (hostConfigurationIndex == -1)
 			throw new IllegalArgumentException("Not a existed host configuration.");
 		
-		hostConfigurations.set(hostConfigurationIndex, hostConfiguration);
+		hostConfigurations.set(hostConfigurationIndex, new HostConfiguration(hostConfiguration));
 		hostConfigurationsChanged = true;
 	}
 	
@@ -350,19 +361,17 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 			throw new RuntimeException("No available hosts.");
 		
 		StringBuilder sbAvailbleHosts = new StringBuilder();
-		Map<String, String> hostConfigurationsMap = new HashMap<>();
-		for (String host : hosts) {
+		for (String host : hosts)
 			sbAvailbleHosts.append(host).append(",");
-			HostConfiguration hostConfiguration = getHostConfiguration(host);
-			if (hostConfiguration == null)
-				throw new RuntimeException(String.format("Failed to get host configuration for host %s.", host));
-			
-			hostConfigurationsMap.put(host, getHostConfigurationString(hostConfiguration));
-		}
 		sbAvailbleHosts.deleteCharAt(sbAvailbleHosts.length() - 1);
-		
 		hostConfigurationsProperties.put(getString(R.string.available_hosts), sbAvailbleHosts.toString());
-		hostConfigurationsProperties.put(getString(R.string.current_host), currentHost);
+		
+		for (HostConfiguration hostConfiguration : hostConfigurations) {
+			hostConfigurationsProperties.put(hostConfiguration.getHost(), getHostConfigurationString(hostConfiguration));
+		}
+		
+		if (currentHost != null)
+			hostConfigurationsProperties.put(getString(R.string.current_host), currentHost);
 		
 		File dataDir = getApplicationContext().getFilesDir();
 		File hostsPropertiesFile = dataDir.toPath().resolve(FILE_PATH_HOSTS_PROPERTIES).toFile();
@@ -406,6 +415,9 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 	
 	@Override
 	public int findHostConfiguration(String host) {
+		if (hostConfigurations == null)
+			return -1;
+		
 		for (int i = 0; i < hostConfigurations.size(); i++) {
 			if (hostConfigurations.get(i).getHost().equals(host))
 				return i;
