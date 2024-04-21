@@ -2,6 +2,7 @@
     <string name="app_name">Amberbridge</string>
     <string name="action_discover">Connect new device</string>
     <string name="action_quit">Quit</string>
+    <string name="action_reconfigure_host">Reconfigure Host</string>
     <string name="about_title">About</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>

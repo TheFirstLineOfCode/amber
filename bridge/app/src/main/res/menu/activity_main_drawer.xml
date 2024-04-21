@@ -7,9 +7,12 @@
             android:title="@string/action_discover"
             android:iconTint="#7E7E7E"
             android:icon="@drawable/ic_add" />
+        <item android:id="@+id/action_reconfigure_host"
+            android:title="@string/action_reconfigure_host"
+            android:icon="@drawable/configure_host" />
         <item android:id="@+id/action_quit"
             android:title="@string/action_quit"
-            android:icon="@drawable/ic_power_settings_new" />
+            android:icon="@drawable/quit_app" />
     </group>
 
     <group
