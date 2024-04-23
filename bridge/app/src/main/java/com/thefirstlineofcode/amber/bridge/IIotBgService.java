@@ -1,12 +1,13 @@
 package com.thefirstlineofcode.amber.bridge;
 
+import com.thefirstlineofcode.chalk.core.AuthFailureException;
 import com.thefirstlineofcode.chalk.network.ConnectionException;
 import com.thefirstlineofcode.sand.protocols.thing.RegisteredEdgeThing;
 
 public interface IIotBgService {
 	public interface IEdgeThingStateistener {
 		void edgeThingRegistered(RegisteredEdgeThing registeredEdgeThing);
-		void exceptionOccurred(ConnectionException exception);
+		void connectionExceptionOccurred(ConnectionException exception);
 		void hostConnected();
 	}
 	

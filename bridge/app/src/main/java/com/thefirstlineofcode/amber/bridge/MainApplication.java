@@ -110,24 +110,23 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 					StringTokenizer st = new StringTokenizer(hostConfigurationString, ",");
 					int countToken = st.countTokens();
 					
+					if (countToken < 2 || countToken > 4)
+						throw new RuntimeException("Illegal host configuration string.");
+					
 					int port = Integer.parseInt(st.nextToken());
 					boolean tlsRequired = Boolean.parseBoolean(st.nextToken());
 					
 					hostConfiguration.setPort(port);
 					hostConfiguration.setTlsRequired(tlsRequired);
 					
-					hostConfigurations[i] = hostConfiguration;
-					if (countToken == 2) {
-						// Ignore
-					} else if (countToken == 4) {
+					if (countToken >= 3)
 						hostConfiguration.setThingName(st.nextToken());
+					
+					if (countToken == 4)
 						hostConfiguration.setThingCredentials(st.nextToken());
-					} else {
-						throw new RuntimeException("Illegal host configuration string.");
-					}
+					
+					hostConfigurations[i] = hostConfiguration;
 				}
-				
-				hostConfigurations[i] = hostConfiguration;
 			}
 			
 			return Arrays.asList(hostConfigurations);
@@ -399,16 +398,21 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 		sbHostConfigurationString.
 				append(hostConfiguration.getPort()).
 				append(",").
-				append(hostConfiguration.isTlsRequired());
+				append(hostConfiguration.isTlsRequired()).
+				append(",");
 		
 		if (hostConfiguration.getThingName() != null) {
-			sbHostConfigurationString.append(",").append(hostConfiguration.getThingName());
-			
-			if (hostConfiguration.getThingCredentials() == null)
-				throw new RuntimeException("Null thing credentials.");
-			
-			sbHostConfigurationString.append(",").append(hostConfiguration.getThingCredentials());
+			sbHostConfigurationString.
+					append(hostConfiguration.getThingName()).
+					append(",");
 		}
+		
+		if (hostConfiguration.getThingCredentials() != null) {
+			sbHostConfigurationString.append(hostConfiguration.getThingCredentials());
+		}
+		
+		if (sbHostConfigurationString.charAt(sbHostConfigurationString.length() - 1) == ',')
+			sbHostConfigurationString.deleteCharAt(sbHostConfigurationString.length() - 1);
 		
 		return sbHostConfigurationString.toString();
 	}

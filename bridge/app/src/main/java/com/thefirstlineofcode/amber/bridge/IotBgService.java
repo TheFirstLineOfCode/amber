@@ -9,13 +9,9 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
+import com.thefirstlineofcode.chalk.android.StandardChatClient;
 import com.thefirstlineofcode.chalk.core.AuthFailureException;
 import com.thefirstlineofcode.chalk.core.IChatClient;
-import com.thefirstlineofcode.chalk.core.StandardChatClient;
-import com.thefirstlineofcode.chalk.core.stream.INegotiationListener;
-import com.thefirstlineofcode.chalk.core.stream.IStream;
-import com.thefirstlineofcode.chalk.core.stream.IStreamNegotiant;
-import com.thefirstlineofcode.chalk.core.stream.NegotiationException;
 import com.thefirstlineofcode.chalk.core.stream.StandardStreamConfig;
 import com.thefirstlineofcode.chalk.core.stream.UsernamePasswordToken;
 import com.thefirstlineofcode.chalk.network.ConnectionException;
@@ -23,6 +19,7 @@ import com.thefirstlineofcode.chalk.network.IConnectionListener;
 import com.thefirstlineofcode.sand.client.actuator.ActuatorPlugin;
 import com.thefirstlineofcode.sand.client.concentrator.ConcentratorPlugin;
 import com.thefirstlineofcode.sand.client.ibtr.IRegistration;
+import com.thefirstlineofcode.sand.client.ibtr.IbtrError;
 import com.thefirstlineofcode.sand.client.ibtr.IbtrPlugin;
 import com.thefirstlineofcode.sand.client.ibtr.RegistrationException;
 import com.thefirstlineofcode.sand.client.sensor.SensorPlugin;
@@ -35,7 +32,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IotBgService extends Service implements IIotBgService, IIotBgService.IEdgeThingStateistener {
+public class IotBgService extends Service implements IIotBgService,
+		IIotBgService.IEdgeThingStateistener, IConnectionListener {
 	private static final Logger logger = LoggerFactory.getLogger(IotBgService.class);
 	
 	private HostConfiguration hostConfiguration;
@@ -118,26 +116,32 @@ public class IotBgService extends Service implements IIotBgService, IIotBgServic
 			return;
 		}
 		
+		if (hostConfiguration.getThingName() == null) {
+			hostConfiguration.setThingName(createThingId());
+		}
+		
 		IRegistration registration = chatClient.createApi(IRegistration.class);
 		try {
-			RegisteredEdgeThing registeredEdgeThing = registration.register(createThingId(), "abcdefghijkl");
+			RegisteredEdgeThing registeredEdgeThing = registration.register(
+					hostConfiguration.getThingName(),"abcdefghijkl");
 			for (IEdgeThingStateistener edgeThingRegistrationistener : edgeThingRegistrationListeners) {
 				edgeThingRegistrationistener.edgeThingRegistered(registeredEdgeThing);
 			}
 		} catch (RegistrationException e) {
-			toastInService("Failed to register edge thing to host.");
-		}
-	}
-	
-	private void toastInService(String message) {
-		Runnable runnable = new Runnable() {
-			@Override
-			public void run() {
-				Toast.makeText(MainApplication.getInstance(), message, Toast.LENGTH_LONG).show();
+			if (e.getError() == IbtrError.NOT_AUTHORIZED) {
+				MainApplication.getInstance().updateHostConfiguration(hostConfiguration);
+				MainApplication.getInstance().saveHostConfigurations();
+				
+				AmberUtils.toastInService("Try to registered a unauthorized thing. Please authorize the thing first.");
+			} else {
+				if (e.getError() == IbtrError.CONFLICT) {
+					hostConfiguration.setThingName(null);
+				}
+				
+				AmberUtils.toastInService("Failed to register edge thing to host.");
 			}
-		};
-		
-		new Handler(Looper.getMainLooper()).post(runnable);
+			
+		}
 	}
 	
 	private String createThingId() {
@@ -146,19 +150,27 @@ public class IotBgService extends Service implements IIotBgService, IIotBgServic
 	
 	@Override
 	public boolean isEdgeThingRegistered() {
-		return hostConfiguration.getThingName() != null;
+		return hostConfiguration.getThingName() != null &&
+				hostConfiguration.getThingCredentials() != null;
 	}
 	
 	@Override
 	public void connectToHost() {
-		// TODO
+		if (!isEdgeThingRegistered())
+			throw new IllegalStateException("Not register yet.");
+		
+		chatClient.addConnectionListener(this);
 		try {
 			chatClient.connect(new UsernamePasswordToken(
 					hostConfiguration.getThingName(), hostConfiguration.getThingCredentials()));
+			
+			for (IEdgeThingStateistener edgeThingStateistener : edgeThingRegistrationListeners) {
+				edgeThingStateistener.hostConnected();
+			}
 		} catch (ConnectionException e) {
-			e.printStackTrace();
+			AmberUtils.toastInService(String.format("Can't connect to host. Connection exception type: %s.", e.getType()));
 		} catch (AuthFailureException e) {
-			e.printStackTrace();
+			AmberUtils.toastInService("Failed to authenticate edge thing.");
 		}
 	}
 	
@@ -196,12 +208,44 @@ public class IotBgService extends Service implements IIotBgService, IIotBgServic
 	}
 	
 	@Override
-	public void exceptionOccurred(ConnectionException exception) {
-	
+	public void connectionExceptionOccurred(ConnectionException exception) {
+		stopMonitorTask();
+		disconnectFromHost();
+		
+		AmberUtils.toastInService(String.format("Connection exception threw. Connection error type: %s.",
+				exception.getType()));
+		
+		for (IEdgeThingStateistener edgeThingStateistener : edgeThingRegistrationListeners) {
+			edgeThingStateistener.connectionExceptionOccurred(exception);
+		}
+		
+		// Reconnecting....
+		connectToHost();
 	}
 	
 	@Override
 	public void hostConnected() {
+		startMonitorTask();
+	}
 	
+	@Override
+	public void exceptionOccurred(ConnectionException exception) {
+		for (IEdgeThingStateistener edgeThingStateistener : edgeThingRegistrationListeners)
+			edgeThingStateistener.connectionExceptionOccurred(exception);
+	}
+	
+	@Override
+	public void messageReceived(String message) {
+		// Ignore.
+	}
+	
+	@Override
+	public void heartBeatsReceived(int length) {
+		// Ignore.
+	}
+	
+	@Override
+	public void messageSent(String message) {
+		// Ignore.
 	}
 }

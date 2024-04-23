@@ -29,32 +29,6 @@ public class AmberUtils {
 		return uuids2;
 	}
 	
-	public static void toast(final Context context, final String message, final int displayTime, final int severity) {
-		toast(context, message, displayTime, severity, null);
-	}
-	
-	public static void toast(final Context context, final String message, final int displayTime, final int severity, final Throwable ex) {
-		log(message, severity, ex); // log immediately, not delayed
-		
-		Looper mainLooper = Looper.getMainLooper();
-		if (Thread.currentThread() == mainLooper.getThread()) {
-			Toast.makeText(context, message, displayTime).show();
-		} else {
-			Runnable runnable = new Runnable() {
-				@Override
-				public void run() {
-					Toast.makeText(context, message, displayTime).show();
-				}
-			};
-			
-			if (context instanceof Activity) {
-				((Activity) context).runOnUiThread(runnable);
-			} else {
-				new Handler(mainLooper).post(runnable);
-			}
-		}
-	}
-	
 	public static void log(String message, int severity, Throwable ex) {
 		switch (severity) {
 			case AmberUtils.INFO:
@@ -71,5 +45,21 @@ public class AmberUtils {
 	
 	public static String formatRssi(short rssi) {
 		return String.valueOf(rssi);
+	}
+	
+	public static void toastInService(String message) {
+		Looper mainLooper = Looper.getMainLooper();
+		if (Thread.currentThread() == mainLooper.getThread()) {
+			Toast.makeText(MainApplication.getInstance(), message, Toast.LENGTH_LONG).show();
+		} else {
+			Runnable runnable = new Runnable() {
+				@Override
+				public void run() {
+					Toast.makeText(MainApplication.getInstance(), message, Toast.LENGTH_LONG).show();
+				}
+			};
+			
+			new Handler(Looper.getMainLooper()).post(runnable);
+		}
 	}
 }
