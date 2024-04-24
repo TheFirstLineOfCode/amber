@@ -2,6 +2,7 @@ package com.thefirstlineofcode.amber.bridge;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanRecord;
@@ -355,6 +356,9 @@ public class DiscoveryActivity extends AppCompatActivity
 	private boolean ensureBluetoothReady() {
 		boolean available = MainApplication.checkBluetoothAvailable(this);
 		if (available) {
+			if (adapter == null)
+				adapter = BluetoothAdapter.getDefaultAdapter();
+			
 			try {
 				adapter.getBluetoothLeScanner().stopScan(getScanCallback());
 			} catch (SecurityException e) {
@@ -506,10 +510,12 @@ public class DiscoveryActivity extends AppCompatActivity
 		if (newState == BluetoothAdapter.STATE_ON) {
 			this.adapter = BluetoothAdapter.getDefaultAdapter();
 			startButton.setEnabled(true);
-		} else {
+		} else if (newState == BluetoothAdapter.STATE_OFF) {
 			this.adapter = null;
 			startButton.setEnabled(false);
 			bluetoothProgress.setVisibility(View.GONE);
+		} else {
+			// Ignore.
 		}
 	}
 	

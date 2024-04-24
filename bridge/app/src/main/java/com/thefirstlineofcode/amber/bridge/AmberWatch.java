@@ -264,6 +264,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		} catch (SecurityException e) {
 			logger.warn("Security exception has thrown while calling BluetoothGatt.disconnect().");
 		}
+		
+		state = State.DISCONNECTING;
 	}
 	
 	public State getState() {

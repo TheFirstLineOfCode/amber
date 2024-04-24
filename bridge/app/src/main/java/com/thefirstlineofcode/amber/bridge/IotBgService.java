@@ -219,6 +219,12 @@ public class IotBgService extends Service implements IIotBgService,
 			edgeThingStateistener.connectionExceptionOccurred(exception);
 		}
 		
+		try {
+			Thread.sleep(30 * 1000);
+		} catch (InterruptedException e) {
+			throw new RuntimeException("????", e);
+		}
+		
 		// Reconnecting....
 		connectToHost();
 	}
@@ -242,10 +248,21 @@ public class IotBgService extends Service implements IIotBgService,
 	@Override
 	public void heartBeatsReceived(int length) {
 		// Ignore.
+		logger.info("ChatClient is still connected.");
 	}
 	
 	@Override
 	public void messageSent(String message) {
 		// Ignore.
+	}
+	
+	@Override
+	public void onDestroy() {
+		stopMonitorTask();
+		disconnectFromHost();
+		
+		logger.info("IoTBgService.onDestory() is being called.");
+		
+		super.onDestroy();
 	}
 }

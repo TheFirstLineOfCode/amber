@@ -7,7 +7,8 @@ public interface IBleDevice extends IBleThing {
 	public enum State {
 		NOT_CONNECTED,
 		CONNECTING,
-		CONNECTED
+		CONNECTED,
+		DISCONNECTING
 	}
 	
 	public interface StateListener {

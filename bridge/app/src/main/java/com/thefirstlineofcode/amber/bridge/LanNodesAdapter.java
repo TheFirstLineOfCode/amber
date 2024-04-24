@@ -86,6 +86,7 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 			public boolean onMenuItemClick(MenuItem menuItem) {
 				switch (menuItem.getItemId()) {
 					case R.id.device_submenu_connect:
+						device.connect();
 						return true;
 					case R.id.device_submenu_disconnect:
 						return true;
