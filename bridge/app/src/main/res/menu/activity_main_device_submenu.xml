@@ -9,4 +9,7 @@
     <item
         android:id="@+id/device_submenu_remove"
         android:title="@string/device_delete_device" />
+    <item
+        android:id="@+id/device_submenu_send_message"
+        android:title="@string/device_send_message" />
 </menu>

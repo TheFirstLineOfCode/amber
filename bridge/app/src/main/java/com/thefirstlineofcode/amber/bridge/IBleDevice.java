@@ -31,4 +31,6 @@ public interface IBleDevice extends IBleThing {
 	
 	void setAutoConnect(boolean autoConnect);
 	boolean isAutoConnect();
+	
+	boolean newAlert(String message);
 }

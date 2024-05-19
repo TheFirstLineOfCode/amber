@@ -45,6 +45,7 @@
     <string name="device_connect">Connect...</string>
     <string name="device_disconnect">Disconnect</string>
     <string name="device_delete_device">Delete Device</string>
+    <string name="device_send_message">Send Message</string>
     <string name="host_title_host">Host:</string>
     <string name="host_connect">Connect</string>
     <string name="host_configure_stream">Configure Stream</string>
@@ -61,4 +62,7 @@
     <string name="configured_host">configured-host</string>
     <string name="available_hosts">available-hosts</string>
     <string name="current_host">current-host</string>
+    <string name="ok">Ok</string>
+    <string name="cancel">Cancel</string>
+    <string name="null_alert_message">Null alert message</string>
 </resources>

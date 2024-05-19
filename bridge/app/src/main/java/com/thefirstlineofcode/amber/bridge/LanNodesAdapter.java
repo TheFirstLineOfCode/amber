@@ -1,13 +1,17 @@
 package com.thefirstlineofcode.amber.bridge;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
@@ -20,11 +24,13 @@ import java.util.List;
 
 public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHolder> {
 	private List<LanNode> lanNodes;
+	private MainActivity mainActivity;
 	
-	public LanNodesAdapter(Context context, List<LanNode> lanNodes) {
+	public LanNodesAdapter(MainActivity mainActivity, List<LanNode> lanNodes) {
 		super(new LanNodeDiffItemCallback());
 		
 		this.lanNodes = lanNodes;
+		this.mainActivity = mainActivity;
 	}
 	
 	@NonNull
@@ -75,8 +81,10 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 			menu.getMenu().findItem(R.id.device_submenu_connect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_remove).setEnabled(false);
+			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
 		} else if (state == IBleDevice.State.NOT_CONNECTED) {
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
+			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
 		} else {
 			menu.getMenu().getItem(R.id.device_submenu_connect).setVisible(false);
 		}
@@ -92,6 +100,9 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 						return true;
 					case R.id.device_submenu_remove:
 						return true;
+					case R.id.device_submenu_send_message:
+						sendMessageToDevice(device);
+						return true;
 				}
 				
 				return false;
@@ -99,6 +110,37 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		});
 		
 		menu.show();
+	}
+	
+	private void sendMessageToDevice(IBleDevice device) {
+		final EditText etMessage = new EditText(mainActivity);
+		AlertDialog.Builder builder = new AlertDialog.Builder(mainActivity);
+		builder.
+				setTitle("Send message to device").setView(etMessage).
+				setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialogInterface, int i) {
+						String alertMessage = etMessage.getText().toString();
+						if (alertMessage == null || "".equals(alertMessage)) {
+							mainActivity.runOnUiThread(() ->
+									Toast.makeText(mainActivity,
+											mainActivity.getString(R.string.null_alert_message),
+											Toast.LENGTH_SHORT).show());
+							return;
+						}
+						
+						device.newAlert("Message from sand-demo" + "\0" + alertMessage);
+					}
+				}).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialogInterface, int i) {
+						dialogInterface.dismiss();
+					}
+				});
+		mainActivity.runOnUiThread(() -> {
+			AlertDialog dialog = builder.create();
+			dialog.show();
+		});
 	}
 	
 	private int getBatteryIcon(int batterLevel) {
