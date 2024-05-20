@@ -132,6 +132,10 @@ public class MainActivity extends AppCompatActivity implements
 	}
 	
 	private BluetoothAdapter getAdapter() {
+		if (!MainApplication.checkBluetoothAvailable(this)) {
+			AmberUtils.toastInService("Bluetooth isn't available");
+		}
+		
 		if (adapter == null)
 			adapter = BluetoothAdapter.getDefaultAdapter();
 		
@@ -233,6 +237,8 @@ public class MainActivity extends AppCompatActivity implements
 		if (!lanNodes.contains(lanNode)) {
 			logger.info(String.format("Device added. Device: %s.", thing));
 			lanNodes.add(lanNode);
+			
+			lanNodesAdapter.notifyDataSetChanged();
 		}
 	}
 	

@@ -12,6 +12,7 @@ public interface IBleDevice extends IBleThing {
 	}
 	
 	public interface StateListener {
+		void connecting(IBleDevice device);
 		void connected(IBleDevice device, BluetoothGatt gatt);
 		void disconnected(IBleDevice device);
 		void occurred(IBleDevice device, Error error);

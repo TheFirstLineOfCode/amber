@@ -145,7 +145,7 @@ public class IotBgService extends Service implements IIotBgService,
 	}
 	
 	private String createThingId() {
-		return "Amber-Watch-" + ThingsUtils.generateRandomId(8);
+		return "Amber-Bridge-" + ThingsUtils.generateRandomId(8);
 	}
 	
 	@Override

@@ -15,6 +15,9 @@ import com.thefirstlineofcode.basalt.oxm.binary.BinaryUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -83,6 +86,10 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		if (state != State.NOT_CONNECTED)
 			return;
 		
+		state = State.CONNECTING;
+		
+		notifyConnecting();
+		
 		if (gattCallback == null)
 			gattCallback = new GattCallback();
 		
@@ -90,6 +97,18 @@ public class AmberWatch extends BleThing implements IBleDevice {
 			bluetoothDevice.connectGatt(MainApplication.getInstance(), false, gattCallback);
 		} catch (SecurityException e) {
 			AmberUtils.toastInService("SecurityException has thrown while calling method BluetoothDevice.connectGatt.");
+		}
+	}
+	
+	private void notifyConnecting() {
+		for (StateListener listener : stateListeners) {
+			listener.connecting(this);
+		}
+	}
+	
+	private void notifyConnected() {
+		for (StateListener listener : stateListeners) {
+			listener.connected(this, gatt);
 		}
 	}
 	
@@ -109,6 +128,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 					throw new RuntimeException("Failed to call gatt.close().", e);
 				}
 				
+				state = State.NOT_CONNECTED;
+				
 				AmberUtils.toastInService(String.format("Failed to connect to device. Device: %s.",
 						AmberWatch.this.bluetoothDevice));
 				
@@ -126,6 +147,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 							AmberWatch.this.bluetoothDevice));
 					gatt.close();
 					AmberWatch.this.gatt = null;
+					
+					state = State.NOT_CONNECTED;
 				}
 			} else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
 				try {
@@ -158,17 +181,25 @@ public class AmberWatch extends BleThing implements IBleDevice {
 					throw new RuntimeException("Failed to call gatt.close().", e);
 				}
 				
+				state = State.NOT_CONNECTED;
+				
 				AmberUtils.toastInService(String.format("Failed to connect to device. Device: %s.",
 						AmberWatch.this.bluetoothDevice));
 				return;
 			}
 			
-			if (!subscribeNotifications())
+			if (!subscribeNotifications()) {
+				state = State.NOT_CONNECTED;
 				throw new RuntimeException("Faiiled to subscribe notifications.");
+			}
 			
 			newAlertcharacteristics = getNewAlertcharacteristic();
-			if (newAlertcharacteristics == null)
+			if (newAlertcharacteristics == null) {
+				state = State.NOT_CONNECTED;
 				throw new RuntimeException("Faiiled to get new alert characteristic.");
+			}
+			
+			state = State.CONNECTED;
 		}
 		
 		@Override
@@ -181,14 +212,14 @@ public class AmberWatch extends BleThing implements IBleDevice {
 	}
 	
 	private BluetoothGattCharacteristic getNewAlertcharacteristic() {
-		BluetoothGattService batteryService = getGattService(UUID_SERVICE_BATTERY);
-		if (batteryService == null)
+		BluetoothGattService alertNotificationService = getGattService(UUID_SERVICE_ALERT_NOTIFICATION);
+		if (alertNotificationService == null)
 			return null;
 		
-		return getNewAlertCharacteristic(batteryService, UUID_CHARACTERISTIC_NEW_ALERT);
+		return getWritableCharacteristic(alertNotificationService, UUID_CHARACTERISTIC_NEW_ALERT);
 	}
 	
-	private BluetoothGattCharacteristic getNewAlertCharacteristic(BluetoothGattService service, UUID uuidCharacteristic) {
+	private BluetoothGattCharacteristic getWritableCharacteristic(BluetoothGattService service, UUID uuidCharacteristic) {
 		BluetoothGattCharacteristic characteristics = getGattCharacteristics(service, uuidCharacteristic);
 		if (characteristics == null) {
 			AmberUtils.toastInService(String.format("Failed to get GATT characteristics. Characteristics UUID: %s", uuidCharacteristic));
@@ -323,9 +354,40 @@ public class AmberWatch extends BleThing implements IBleDevice {
 	}
 	
 	@Override
-	public boolean newAlert(String message) {
-		// TODO
-		return false;
+	public boolean newAlert(String alertMessage) {
+		if (alertMessage == null)
+			return false;
+		
+		if (alertMessage.length() > 96)
+			return false;
+		
+		try {
+			byte[] alertMessageBytes = getAlertMessageBytes(alertMessage);
+			if (newAlertcharacteristics.setValue(alertMessageBytes))
+				return gatt.writeCharacteristic(newAlertcharacteristics);
+			
+			return false;
+		} catch (IOException e) {
+			AmberUtils.toastInService("Failed to get alert message bytes.");
+			return false;
+		}
+	}
+	
+	private byte fromUint8(int value) {
+		return (byte)(value & 0xff);
+	}
+	
+	private byte[] toUtf8s(String message) {
+		return message.getBytes(StandardCharsets.UTF_8);
+	}
+	
+	private byte[] getAlertMessageBytes(String alertMessage) throws IOException {
+		ByteArrayOutputStream stream = new ByteArrayOutputStream(96);
+		stream.write(fromUint8(9));
+		stream.write(fromUint8(1));
+		stream.write(toUtf8s(alertMessage));
+		
+		return stream.toByteArray();
 	}
 	
 	public static AmberWatch createInstance(BluetoothAdapter adapter, IBleThing thing) {

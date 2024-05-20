@@ -1,6 +1,8 @@
 package com.thefirstlineofcode.amber.bridge;
 
 import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothGatt;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.view.LayoutInflater;
@@ -22,7 +24,7 @@ import com.google.android.material.card.MaterialCardView;
 
 import java.util.List;
 
-public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHolder> {
+public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHolder> implements IBleDevice.StateListener {
 	private List<LanNode> lanNodes;
 	private MainActivity mainActivity;
 	
@@ -31,6 +33,10 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		
 		this.lanNodes = lanNodes;
 		this.mainActivity = mainActivity;
+		
+		for (LanNode lanNode : lanNodes) {
+			((AmberWatch)lanNode.getThing()).addStateListener(this);
+		}
 	}
 	
 	@NonNull
@@ -129,7 +135,16 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 							return;
 						}
 						
-						device.newAlert("Message from sand-demo" + "\0" + alertMessage);
+						String alertMessageWithHead = "Message from sand-demo" + "\0" + alertMessage;
+						if (alertMessageWithHead.length() > 96) {
+							mainActivity.runOnUiThread(() ->
+									Toast.makeText(mainActivity,
+											mainActivity.getString(R.string.alert_message_too_long),
+											Toast.LENGTH_SHORT).show());
+							return;
+						}
+						
+						device.newAlert(alertMessageWithHead);
 					}
 				}).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
 					@Override
@@ -153,6 +168,34 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		} else {
 			return R.drawable.ic_battery_full;
 		}
+	}
+	
+	@Override
+	public void connecting(IBleDevice device) {
+		itemChanged(device);
+	}
+	
+	@Override
+	public void connected(IBleDevice device, BluetoothGatt gatt) {
+		itemChanged(device);
+	}
+	
+	@Override
+	public void disconnected(IBleDevice device) {
+		itemChanged(device);
+	}
+	
+	private void itemChanged(IBleDevice device) {
+		for (int i = 0; i < lanNodes.size(); i++) {
+			if (lanNodes.get(i).equals(device)) {
+				notifyItemChanged(i);
+			}
+		}
+	}
+	
+	@Override
+	public void occurred(IBleDevice device, IBleDevice.Error error) {
+		// Ignore
 	}
 	
 	static class ViewHolder extends RecyclerView.ViewHolder {
