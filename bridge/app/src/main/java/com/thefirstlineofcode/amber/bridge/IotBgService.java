@@ -120,7 +120,14 @@ public class IotBgService extends Service implements IIotBgService,
 			hostConfiguration.setThingName(createThingId());
 		}
 		
-		IRegistration registration = chatClient.createApi(IRegistration.class);
+		IChatClient registrationChatClient = new StandardChatClient(new StandardStreamConfig(
+				hostConfiguration.getHost(),
+				hostConfiguration.getPort(),
+				hostConfiguration.isTlsRequired()
+		));
+		registrationChatClient.register(IbtrPlugin.class);
+		
+		IRegistration registration = registrationChatClient.createApi(IRegistration.class);
 		try {
 			RegisteredEdgeThing registeredEdgeThing = registration.register(
 					hostConfiguration.getThingName(),"abcdefghijkl");
