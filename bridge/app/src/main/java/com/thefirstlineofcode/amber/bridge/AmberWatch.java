@@ -112,6 +112,12 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		}
 	}
 	
+	private void notifyDisconnected() {
+		for (StateListener listener : stateListeners) {
+			listener.disconnected(this);
+		}
+	}
+	
 	private class GattCallback extends BluetoothGattCallback {
 		@Override
 		public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -161,6 +167,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 				
 				AmberWatch.this.gatt = null;
 				state = State.NOT_CONNECTED;
+				
+				notifyDisconnected();
 			} else {
 				// Ignore.
 			}
@@ -185,6 +193,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 				
 				AmberUtils.toastInService(String.format("Failed to connect to device. Device: %s.",
 						AmberWatch.this.bluetoothDevice));
+				
+				notifyDisconnected();
 				return;
 			}
 			
@@ -200,6 +210,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 			}
 			
 			state = State.CONNECTED;
+			
+			notifyConnected();
 		}
 		
 		@Override
@@ -328,8 +340,6 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		} catch (SecurityException e) {
 			logger.warn("Security exception has thrown while calling BluetoothGatt.disconnect().");
 		}
-		
-		state = State.DISCONNECTING;
 	}
 	
 	public State getState() {

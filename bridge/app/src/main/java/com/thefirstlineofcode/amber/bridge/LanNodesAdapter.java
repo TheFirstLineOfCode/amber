@@ -92,7 +92,7 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
 		} else {
-			menu.getMenu().getItem(R.id.device_submenu_connect).setVisible(false);
+			menu.getMenu().findItem(R.id.device_submenu_connect).setVisible(false);
 		}
 		
 		menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -103,6 +103,7 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 						device.connect();
 						return true;
 					case R.id.device_submenu_disconnect:
+						device.disconnect();
 						return true;
 					case R.id.device_submenu_remove:
 						return true;
@@ -187,7 +188,7 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 	
 	private void itemChanged(IBleDevice device) {
 		for (int i = 0; i < lanNodes.size(); i++) {
-			if (lanNodes.get(i).equals(device)) {
+			if (lanNodes.get(i).getThing().equals(device)) {
 				notifyItemChanged(i);
 			}
 		}
