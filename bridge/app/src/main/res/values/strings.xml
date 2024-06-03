@@ -66,4 +66,6 @@
     <string name="cancel">Cancel</string>
     <string name="null_alert_message">Null alert message</string>
     <string name="alert_message_too_long">Alert message is too long</string>
+    <string name="alert_message_has_sent">Alert message has sent</string>
+    <string name="failed_to_send_alert_message">Failed to send alert message.</string>
 </resources>

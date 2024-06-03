@@ -5,9 +5,11 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.thefirstlineofcode.basalt.oxm.binary.BinaryUtils;
@@ -19,8 +21,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 
 public class AmberWatch extends BleThing implements IBleDevice {
 	public static final UUID UUID_SERVICE_BATTERY = UUID.fromString("0000180f-0000-1000-8000-00805f9b34fb");
@@ -32,6 +38,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 	public static final UUID UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT = UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb");
 	public static final UUID UUID_CHARACTERISTIC_MOTION_STEP_COUNT = UUID.fromString("00030001-78fc-48fe-8e23-433b3a1942d0");
 	public static final UUID UUID_CHARACTERISTIC_NEW_ALERT = UUID.fromString("00002a46-0000-1000-8000-00805f9b34fb");
+	
+	public static final UUID UUID_DESCRIPTOR_GATT_CLIENT_CHARACTERISTIC_CONFIGURATION = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 	
 	private static final Logger logger = LoggerFactory.getLogger(AmberWatch.class);
 	
@@ -49,7 +57,9 @@ public class AmberWatch extends BleThing implements IBleDevice {
 	private GattCallback gattCallback;
 	private BluetoothGatt gatt;
 	
-	BluetoothGattCharacteristic newAlertcharacteristics;
+	private Queue<ServiceAndCharacteristic> serviceAndCharacteristics;
+	private BluetoothGattCharacteristic newAlertcharacteristics;
+	
 	
 	private AmberWatch(BluetoothDevice bluetoothDevice, String thingId, String name, String address) {
 		super(thingId, name, address);
@@ -57,6 +67,11 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		
 		state = State.NOT_CONNECTED;
 		stateListeners = new ArrayList<>();
+		
+		serviceAndCharacteristics = new ArrayBlockingQueue<ServiceAndCharacteristic>(5);
+		serviceAndCharacteristics.add(new ServiceAndCharacteristic(UUID_SERVICE_BATTERY, UUID_CHARACTERISTIC_BATTERY_LEVEL));
+		serviceAndCharacteristics.add(new ServiceAndCharacteristic(UUID_SERVICE_HEART_RATE, UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT));
+		serviceAndCharacteristics.add(new ServiceAndCharacteristic(UUID_SERVICE_MOTION, UUID_CHARACTERISTIC_MOTION_STEP_COUNT));
 		
 		batteryLevel = 50;
 		heartRate = 0;
@@ -88,7 +103,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		
 		state = State.CONNECTING;
 		
-		notifyConnecting();
+		notifyConnectingState();
 		
 		if (gattCallback == null)
 			gattCallback = new GattCallback();
@@ -100,19 +115,19 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		}
 	}
 	
-	private void notifyConnecting() {
+	private void notifyConnectingState() {
 		for (StateListener listener : stateListeners) {
 			listener.connecting(this);
 		}
 	}
 	
-	private void notifyConnected() {
+	private void notifyConnectedState() {
 		for (StateListener listener : stateListeners) {
 			listener.connected(this, gatt);
 		}
 	}
 	
-	private void notifyDisconnected() {
+	private void notifyDisconnectedState() {
 		for (StateListener listener : stateListeners) {
 			listener.disconnected(this);
 		}
@@ -168,7 +183,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 				AmberWatch.this.gatt = null;
 				state = State.NOT_CONNECTED;
 				
-				notifyDisconnected();
+				notifyDisconnectedState();
 			} else {
 				// Ignore.
 			}
@@ -194,13 +209,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 				AmberUtils.toastInService(String.format("Failed to connect to device. Device: %s.",
 						AmberWatch.this.bluetoothDevice));
 				
-				notifyDisconnected();
+				notifyDisconnectedState();
 				return;
-			}
-			
-			if (!subscribeNotifications()) {
-				state = State.NOT_CONNECTED;
-				throw new RuntimeException("Faiiled to subscribe notifications.");
 			}
 			
 			newAlertcharacteristics = getNewAlertcharacteristic();
@@ -209,9 +219,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 				throw new RuntimeException("Faiiled to get new alert characteristic.");
 			}
 			
-			state = State.CONNECTED;
-			
-			notifyConnected();
+			subscribeNotifications();
 		}
 		
 		@Override
@@ -220,6 +228,23 @@ public class AmberWatch extends BleThing implements IBleDevice {
 			
 			logger.info(String.format("Characteristic which's UUID is '%s' has changed. New value: %s.",
 					characteristic.getUuid(), BinaryUtils.getHexStringFromBytes(characteristic.getValue())));
+		}
+		
+		@Override
+		public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+			super.onDescriptorWrite(gatt, descriptor, status);
+			
+			if (status == BluetoothGatt.GATT_SUCCESS) {
+				logger.info(String.format("Characteristic which's UUID is '%s' has subscribed on device '%s'.",
+						descriptor.getCharacteristic().getUuid(), AmberWatch.this.toString()));
+			} else {
+				throw new RuntimeException(String.format(
+						"Faiiled to subscribe characteristic which's UUID is '%s'.",
+						descriptor.getCharacteristic().getUuid()));
+			}
+			
+			
+			subscribeNextNotification();
 		}
 	}
 	
@@ -247,34 +272,38 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		return characteristics;
 	}
 	
-	private boolean subscribeNotifications() {
-		return subscribeBatteryLevelNotification() &&
-				subscribeHeartRateMeasurementNotification() &&
-				subscribeMotionStepCountNotification();
+	private void subscribeNotifications() {
+		subscribeNextNotification();
 	}
 	
-	private boolean subscribeMotionStepCountNotification() {
-		BluetoothGattService motionService = getGattService(UUID_SERVICE_MOTION);
-		if (motionService == null)
-			return false;
+	private void subscribeNextNotification() {
+		if (serviceAndCharacteristics.isEmpty() && state == State.CONNECTING) {
+			state = State.CONNECTED;
+			notifyConnectedState();
+			
+			return;
+		}
 		
-		return subscribeNotification(motionService, UUID_CHARACTERISTIC_MOTION_STEP_COUNT);
+		ServiceAndCharacteristic serviceAndCharacteristic = serviceAndCharacteristics.poll();
+		BluetoothGattService service = getGattService(serviceAndCharacteristic.service);
+		if (service == null) {
+			AmberUtils.toastInService(String.format("Can't get service which's UUID is '%s'.", serviceAndCharacteristic.service));
+			subscribeNextNotification();
+			
+			return;
+		}
+		
+		subscribeNotification(service, serviceAndCharacteristic.charactistic);
 	}
 	
-	private boolean subscribeHeartRateMeasurementNotification() {
-		BluetoothGattService heartRateService = getGattService(UUID_SERVICE_HEART_RATE);
-		if (heartRateService == null)
-			return false;
+	private class ServiceAndCharacteristic {
+		public UUID service;
+		public UUID charactistic;
 		
-		return subscribeNotification(heartRateService, UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT);
-	}
-	
-	private boolean subscribeBatteryLevelNotification() {
-		BluetoothGattService batteryService = getGattService(UUID_SERVICE_BATTERY);
-		if (batteryService == null)
-			return false;
-		
-		return subscribeNotification(batteryService, UUID_CHARACTERISTIC_BATTERY_LEVEL);
+		public ServiceAndCharacteristic(UUID service, UUID charactistic) {
+			this.service = service;
+			this.charactistic = charactistic;
+		}
 	}
 	
 	@Nullable
@@ -287,16 +316,21 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		return batteryService;
 	}
 	
-	private boolean subscribeNotification(BluetoothGattService service, UUID uuidCharacteristic) {
+	private void subscribeNotification(BluetoothGattService service, UUID uuidCharacteristic) {
 		BluetoothGattCharacteristic characteristics = getGattCharacteristics(service, uuidCharacteristic);
 		if (characteristics == null) {
 			AmberUtils.toastInService(String.format("Failed to get GATT characteristics. Characteristics UUID: %s", uuidCharacteristic));
-			return false;
+			subscribeNextNotification();
+			
+			return;
 		}
 		
-		if ((characteristics.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) <= 0) {
+		if ((characteristics.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) <= 0 &&
+				(characteristics.getProperties() & BluetoothGattCharacteristic.PROPERTY_INDICATE) <= 0) {
 			AmberUtils.toastInService("Characteristics which's UUID is '%s' doesn't support notification");
-			return false;
+			subscribeNextNotification();
+			
+			return;
 		}
 		
 		try {
@@ -304,18 +338,34 @@ public class AmberWatch extends BleThing implements IBleDevice {
 				AmberUtils.toastInService(String.format(
 						"Failed to subscribe GATT characteristics. Characteristics UUID: %s.",
 						characteristics.getUuid()));
-				return false;
+				
+				subscribeNextNotification();
+				return;
 			}
 			
-			logger.info(String.format("Characteristic which's UUID is '%s' has subscribed.",
-					characteristics.getUuid()));
-			return true;
+			BluetoothGattDescriptor notifyDescriptor = characteristics.getDescriptor(UUID_DESCRIPTOR_GATT_CLIENT_CHARACTERISTIC_CONFIGURATION);
+			if (notifyDescriptor == null) {
+				logger.info(String.format("Characteristic which's UUID is '%s' has subscribed on device '%s'.",
+						characteristics.getUuid(), this.toString()));
+				
+				subscribeNextNotification();
+				return;
+			}
+			
+			int properties = characteristics.getProperties();
+			if ((properties & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+				notifyDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+				gatt.writeDescriptor(notifyDescriptor);
+			}
+			
+			if ((properties & BluetoothGattCharacteristic.PROPERTY_INDICATE) > 0) {
+				notifyDescriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+				gatt.writeDescriptor(notifyDescriptor);
+			}
 		} catch (SecurityException e) {
 			AmberUtils.toastInService(String.format(
 					"Security exception threw when calling gatt.setCharacteristicNotification(). Device: %s.",
 						AmberWatch.this.bluetoothDevice));
-			
-			return false;
 		}
 	}
 	
@@ -328,8 +378,6 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		}
 		return characteristics;
 	}
-	
-	;
 	
 	public void disconnect() {
 		if (state != State.CONNECTED)
@@ -395,6 +443,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		ByteArrayOutputStream stream = new ByteArrayOutputStream(96);
 		stream.write(fromUint8(9));
 		stream.write(fromUint8(1));
+		stream.write(0x00);
 		stream.write(toUtf8s(alertMessage));
 		
 		return stream.toByteArray();

@@ -136,8 +136,8 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 							return;
 						}
 						
-						String alertMessageWithHead = "Message from sand-demo" + "\0" + alertMessage;
-						if (alertMessageWithHead.length() > 96) {
+						String alertMessageWithTitle = "Message from sand-demo" + "\0" + alertMessage;
+						if (alertMessageWithTitle.length() > 96) {
 							mainActivity.runOnUiThread(() ->
 									Toast.makeText(mainActivity,
 											mainActivity.getString(R.string.alert_message_too_long),
@@ -145,7 +145,17 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 							return;
 						}
 						
-						device.newAlert(alertMessageWithHead);
+						if (device.newAlert(alertMessageWithTitle)) {
+							final String text = mainActivity.getString(R.string.alert_message_has_sent);
+							mainActivity.runOnUiThread(() ->
+									Toast.makeText(mainActivity, text,
+											Toast.LENGTH_SHORT).show());
+						} else {
+							final String text = mainActivity.getString(R.string.failed_to_send_alert_message);
+							mainActivity.runOnUiThread(() ->
+									Toast.makeText(mainActivity, text,
+											Toast.LENGTH_SHORT).show());
+						}
 					}
 				}).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
 					@Override
