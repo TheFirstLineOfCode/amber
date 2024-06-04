@@ -70,14 +70,15 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		holder.deviceInfoView.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				showDeviceSubmenu(view, device);
+				showDeviceSubmenu(view, lanNode);
 			}
 		});
 		
 		holder.batteryIcon.setImageResource(getBatteryIcon(device.getBatteryLevel()));
 	}
 	
-	private void showDeviceSubmenu(final View v, final IBleDevice device) {
+	private void showDeviceSubmenu(final View v, final LanNode lanNode) {
+		IBleDevice device = (AmberWatch) lanNode.getThing();
 		IBleDevice.State state = device.getState();
 		
 		PopupMenu menu = new PopupMenu(v.getContext(), v);
@@ -86,13 +87,16 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		if (state == IBleDevice.State.CONNECTING) {
 			menu.getMenu().findItem(R.id.device_submenu_connect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
-			menu.getMenu().findItem(R.id.device_submenu_remove).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
 		} else if (state == IBleDevice.State.NOT_CONNECTED) {
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
 		} else {
 			menu.getMenu().findItem(R.id.device_submenu_connect).setVisible(false);
+		}
+		
+		if (lanNode.getLanId() != null) {
+			menu.getMenu().findItem(R.id.device_submenu_add_device_to_concentrator).setVisible(false);
 		}
 		
 		menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -105,7 +109,8 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 					case R.id.device_submenu_disconnect:
 						device.disconnect();
 						return true;
-					case R.id.device_submenu_remove:
+					case R.id.device_submenu_add_device_to_concentrator:
+						addDeviceToConcentrator((AmberWatch)lanNode.getThing());
 						return true;
 					case R.id.device_submenu_send_message:
 						sendMessageToDevice(device);
@@ -117,6 +122,9 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		});
 		
 		menu.show();
+	}
+	
+	private void addDeviceToConcentrator(AmberWatch device) {
 	}
 	
 	private void sendMessageToDevice(IBleDevice device) {

@@ -3,7 +3,6 @@ package com.thefirstlineofcode.amber.bridge;
 public class LanNode {
 	private Integer lanId;
 	private IBleThing thing;
-	private boolean confirmed;
 	
 	public LanNode() {
 		this(null, null);
@@ -29,10 +28,6 @@ public class LanNode {
 	
 	public void setThing(BleThing thing) {
 		this.thing = thing;
-	}
-	
-	public boolean isConfirmed() {
-		return lanId != null;
 	}
 	
 	@Override
