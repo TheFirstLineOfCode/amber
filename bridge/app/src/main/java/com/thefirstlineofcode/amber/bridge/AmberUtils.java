@@ -62,4 +62,9 @@ public class AmberUtils {
 			new Handler(Looper.getMainLooper()).post(runnable);
 		}
 	}
+	
+	public static int bytesToInteger(byte[] bytes) {
+		// TODO
+		return -1;
+	}
 }

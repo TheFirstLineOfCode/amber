@@ -228,6 +228,25 @@ public class AmberWatch extends BleThing implements IBleDevice {
 			
 			logger.info(String.format("Characteristic which's UUID is '%s' has changed. New value: %s.",
 					characteristic.getUuid(), BinaryUtils.getHexStringFromBytes(characteristic.getValue())));
+			
+			if (characteristic.getUuid().equals(UUID_CHARACTERISTIC_BATTERY_LEVEL)) {
+				int batteryLevel = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+				if (batteryLevel > 100 || batteryLevel < 0) {
+					logger.warn("Unexpected percent value: " + batteryLevel);
+					batteryLevel = Math.min(100, Math.max(0, batteryLevel));
+				}
+				
+				batteryLevelChanged(batteryLevel);
+			} else if (characteristic.getUuid().equals(UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT)) {
+				int heartRate = ((int)characteristic.getValue()[1]) & 0xff;
+				heartRateChanged(heartRate);
+			} else if (characteristic.getUuid().equals(UUID_CHARACTERISTIC_MOTION_STEP_COUNT)) {
+				byte[] value = characteristic.getValue();
+				int stepCount = (value[0] & 0xff) | ((value[1] & 0xff) << 8) | ((value[2] & 0xff) << 16) | ((value[3] & 0xff) << 24);
+				stepCountChanged(stepCount);
+			} else {
+				AmberUtils.toastInService(String.format("Unknown characteristic which's UUID: %s", characteristic.getUuid()));
+			}
 		}
 		
 		@Override
@@ -246,6 +265,18 @@ public class AmberWatch extends BleThing implements IBleDevice {
 			
 			subscribeNextNotification();
 		}
+	}
+	
+	private void stepCountChanged(int stepCount) {
+		logger.info("Step count changed to '{}'.", stepCount);
+	}
+	
+	private void heartRateChanged(int heartRate) {
+		logger.info("Heart rate changed to '{}'.", heartRate);
+	}
+	
+	private void batteryLevelChanged(int batteryLevel) {
+		logger.info("Battery level changed to '{}'.", batteryLevel);
 	}
 	
 	private BluetoothGattCharacteristic getNewAlertcharacteristic() {

@@ -120,30 +120,6 @@
                     android:scaleType="fitXY"
                     card_view:srcCompat="@drawable/ic_battery_50"
                     card_view:tint="@color/secondarytext" />
-
-                <ImageView
-                    android:id="@+id/device_heart_rate_status"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_below="@id/device_image"
-                    android:layout_margin="3dp"
-                    android:layout_toEndOf="@id/device_heart_rate_status"
-                    android:padding="3dp"
-                    android:scaleType="fitXY"
-                    card_view:srcCompat="@drawable/ic_heart_rate"
-                    card_view:tint="@color/secondarytext" />
-
-                <ImageView
-                    android:id="@+id/device_total_steps_status"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_below="@id/device_image"
-                    android:layout_margin="3dp"
-                    android:layout_toEndOf="@id/device_info_icons"
-                    android:padding="3dp"
-                    android:scaleType="fitXY"
-                    card_view:srcCompat="@drawable/ic_running"
-                    card_view:tint="@color/secondarytext" />
             </com.google.android.flexbox.FlexboxLayout>
         </RelativeLayout>
     </com.google.android.material.card.MaterialCardView>

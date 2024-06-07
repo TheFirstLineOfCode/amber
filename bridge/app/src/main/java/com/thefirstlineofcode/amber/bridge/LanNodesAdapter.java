@@ -226,8 +226,6 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		
 		ImageView deviceInfoView;
 		ImageView batteryIcon;
-		ImageView heartRateIcon;
-		ImageView totalStepsIcon;
 		
 		public ViewHolder(@NonNull View view) {
 			super(view);
@@ -241,10 +239,6 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 			deviceInfoView = view.findViewById(R.id.device_info_image);
 			
 			batteryIcon = view.findViewById(R.id.device_battery_status);
-			
-			heartRateIcon = view.findViewById(R.id.device_heart_rate_status);
-			
-			totalStepsIcon = view.findViewById(R.id.device_total_steps_status);
 		}
 	}
 	
