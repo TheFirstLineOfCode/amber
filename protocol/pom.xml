@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	
+	<parent>
+		<groupId>com.thefirstlineofcode.sand</groupId>
+		<artifactId>sand-protocols</artifactId>
+		<version>1.1.0-BETA2</version>
+		<relativePath/>
+	</parent>
+	
+	<groupId>com.thefirstlineofcode.amber</groupId>
+	<artifactId>amber-protocol</artifactId>
+	<name>Amber protocol</name>
+	<version>1.0.0-RELEASE</version>
+	
+	<dependencies>
+		<dependency>
+			<groupId>com.thefirstlineofcode.basalt</groupId>
+			<artifactId>basalt-oxm</artifactId>
+			<version>1.1.0-RELEASE</version>
+		</dependency>
+	</dependencies>
+</project>
+
