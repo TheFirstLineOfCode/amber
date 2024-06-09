@@ -17,9 +17,7 @@ public interface IIotBgService {
 	void connectToHost();
 	void disconnectFromHost();
 	boolean isConnectedToHost();
-	void startMonitorTask();
-	void stopMonitorTask();
-	boolean isMonitorTaskStarted();
 	void addEdgeThingStateListener(IEdgeThingStateistener listener);
 	boolean removeEdgeThingStateListener(IEdgeThingStateistener listener);
+	int addDeviceAsNode(IBleDevice device);
 }

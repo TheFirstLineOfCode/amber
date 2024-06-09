@@ -16,7 +16,6 @@ import com.thefirstlineofcode.chalk.core.IChatClient;
 import com.thefirstlineofcode.chalk.core.StandardChatClient;
 import com.thefirstlineofcode.chalk.core.stream.StandardStreamConfig;
 import com.thefirstlineofcode.sand.client.actuator.ActuatorPlugin;
-import com.thefirstlineofcode.sand.client.concentrator.ConcentratorPlugin;
 import com.thefirstlineofcode.sand.client.ibtr.IbtrPlugin;
 import com.thefirstlineofcode.sand.client.sensor.SensorPlugin;
 

@@ -1,9 +1,7 @@
 package com.thefirstlineofcode.amber.bridge;
 
 import android.app.AlertDialog;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGatt;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -55,7 +53,8 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 			throw new IllegalArgumentException("Not amber watch.");
 		
 		AmberWatch device = (AmberWatch)thing;
-		holder.deviceNameLabel.setText(String.format("%s - %s-%s", "?", device.getName(), device.getAddress()));
+		holder.deviceNameLabel.setText(String.format("%s - %s-%s",
+				getLanNodeText(lanNode), device.getName(), device.getAddress()));
 		
 		IBleDevice.State deviceState =  device.getState();
 		String sDeviceStatus = null;
@@ -77,6 +76,10 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		holder.batteryIcon.setImageResource(getBatteryIcon(device.getBatteryLevel()));
 	}
 	
+	private Object getLanNodeText(LanNode lanNode) {
+		return lanNode.getLanId() == null ? "?" : lanNode.getLanId();
+	}
+	
 	private void showDeviceSubmenu(final View v, final LanNode lanNode) {
 		IBleDevice device = (AmberWatch) lanNode.getThing();
 		IBleDevice.State state = device.getState();
@@ -96,7 +99,7 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		}
 		
 		if (lanNode.getLanId() != null) {
-			menu.getMenu().findItem(R.id.device_submenu_add_device_to_concentrator).setVisible(false);
+			menu.getMenu().findItem(R.id.device_submenu_add_device_as_node).setVisible(false);
 		}
 		
 		menu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
@@ -109,8 +112,8 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 					case R.id.device_submenu_disconnect:
 						device.disconnect();
 						return true;
-					case R.id.device_submenu_add_device_to_concentrator:
-						addDeviceToConcentrator((AmberWatch)lanNode.getThing());
+					case R.id.device_submenu_add_device_as_node:
+						addDeviceAsNode((IBleDevice)lanNode.getThing());
 						return true;
 					case R.id.device_submenu_send_message:
 						sendMessageToDevice(device);
@@ -124,7 +127,13 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		menu.show();
 	}
 	
-	private void addDeviceToConcentrator(AmberWatch device) {
+	private void addDeviceAsNode(IBleDevice device) {
+		if (!(device instanceof AmberWatch))
+			throw new IllegalArgumentException("Not amber watch.");
+		
+		AmberWatch watch = (AmberWatch)device;
+		
+		
 	}
 	
 	private void sendMessageToDevice(IBleDevice device) {

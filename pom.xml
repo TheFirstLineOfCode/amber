@@ -18,7 +18,6 @@
 
 	<modules>
 		<module>protocol</module>
-		<module>server</module>
 	</modules>
 
 </project>

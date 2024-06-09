@@ -7,8 +7,8 @@
         android:id="@+id/device_submenu_disconnect"
         android:title="@string/device_disconnect" />
     <item
-        android:id="@+id/device_submenu_add_device_to_concentrator"
-        android:title="@string/device_add_device_to_concentrator" />
+        android:id="@+id/device_submenu_add_device_as_node"
+        android:title="@string/device_add_device_as_node" />
     <item
         android:id="@+id/device_submenu_send_message"
         android:title="@string/device_send_message" />

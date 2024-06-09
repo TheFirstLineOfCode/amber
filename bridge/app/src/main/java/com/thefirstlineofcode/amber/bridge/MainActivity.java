@@ -184,9 +184,6 @@ public class MainActivity extends AppCompatActivity implements
 	
 	private void reconfigureHost() {
 		if (iotBgService != null) {
-			if (iotBgService.isMonitorTaskStarted())
-				iotBgService.stopMonitorTask();
-			
 			if (iotBgService.isConnectedToHost())
 				iotBgService.disconnectFromHost();
 			

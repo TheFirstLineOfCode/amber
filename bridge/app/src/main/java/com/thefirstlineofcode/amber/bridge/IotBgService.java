@@ -62,21 +62,6 @@ public class IotBgService extends Service implements IIotBgService,
 		return Service.START_REDELIVER_INTENT;
 	}
 	
-	@Override
-	public void startMonitorTask() {
-		// TODO
-	}
-	
-	@Override
-	public void stopMonitorTask() {
-	
-	}
-	
-	@Override
-	public boolean isMonitorTaskStarted() {
-		return false;
-	}
-	
 	@Nullable
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -204,6 +189,11 @@ public class IotBgService extends Service implements IIotBgService,
 	}
 	
 	@Override
+	public int addDeviceAsNode(IBleDevice device) {
+		return 0;
+	}
+	
+	@Override
 	public void edgeThingRegistered(RegisteredEdgeThing registeredEdgeThing) {
 		hostConfiguration.setThingName(registeredEdgeThing.getThingName());
 		hostConfiguration.setThingCredentials(registeredEdgeThing.getCredentials());
@@ -216,7 +206,6 @@ public class IotBgService extends Service implements IIotBgService,
 	
 	@Override
 	public void connectionExceptionOccurred(ConnectionException exception) {
-		stopMonitorTask();
 		disconnectFromHost();
 		
 		AmberUtils.toastInService(String.format("Connection exception threw. Connection error type: %s.",
@@ -237,9 +226,7 @@ public class IotBgService extends Service implements IIotBgService,
 	}
 	
 	@Override
-	public void hostConnected() {
-		startMonitorTask();
-	}
+	public void hostConnected() {}
 	
 	@Override
 	public void exceptionOccurred(ConnectionException exception) {
@@ -265,7 +252,6 @@ public class IotBgService extends Service implements IIotBgService,
 	
 	@Override
 	public void onDestroy() {
-		stopMonitorTask();
 		disconnectFromHost();
 		
 		logger.info("IoTBgService.onDestory() is being called.");

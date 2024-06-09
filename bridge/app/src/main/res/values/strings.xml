@@ -44,7 +44,7 @@
     <string name="controlcenter_get_heartrate_measurement">Get heart rate measurement</string>
     <string name="device_connect">Connect...</string>
     <string name="device_disconnect">Disconnect</string>
-    <string name="device_add_device_to_concentrator">Add Device to Concentrator</string>
+    <string name="device_add_device_as_node">Add Device as Node</string>
     <string name="device_send_message">Send Message</string>
     <string name="host_title_host">Host:</string>
     <string name="host_connect">Connect</string>
