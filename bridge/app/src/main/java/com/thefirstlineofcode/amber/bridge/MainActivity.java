@@ -3,14 +3,10 @@ package com.thefirstlineofcode.amber.bridge;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.view.MenuItem;
 import android.view.View;
 
@@ -25,27 +21,24 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
-import com.thefirstlineofcode.basalt.xmpp.core.stanza.error.StanzaError;
-import com.thefirstlineofcode.sand.client.ibtr.RegistrationException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements
-		NavigationView.OnNavigationItemSelectedListener, ILanNodeManager.Listener {
+		NavigationView.OnNavigationItemSelectedListener, IThingNodeManager.Listener {
 	private static final Logger logger = LoggerFactory.getLogger(MainActivity.class);
 	
 	public static final int BLUETOOTH_PERMISSIONS_REQUEST_CODE = 200;
 	
 	private FloatingActionButton fab;
 	
-	private RecyclerView lanNodesView;
-	private List<LanNode> lanNodes;
-	private LanNodesAdapter lanNodesAdapter;
+	private RecyclerView thingNodesView;
+	private List<ThingNode> thingNodes;
+	private ThingNodesAdapter thingNodesAdapter;
 	
 	private BluetoothAdapter adapter;
 	
@@ -105,30 +98,30 @@ public class MainActivity extends AppCompatActivity implements
 		NavigationView navigationView = findViewById(R.id.nav_view);
 		navigationView.setNavigationItemSelectedListener(this);
 		
-		lanNodesView = findViewById(R.id.lanNodesView);
-		lanNodesView.setHasFixedSize(true);
-		lanNodesView.setLayoutManager(new LinearLayoutManager(this));
+		thingNodesView = findViewById(R.id.thingNodesView);
+		thingNodesView.setHasFixedSize(true);
+		thingNodesView.setLayoutManager(new LinearLayoutManager(this));
 		
-		ILanNodeManager lanNodeManager = ((ILanNodeManager)getApplication());
-		lanNodeManager.addLanNodeListener(this);
+		IThingNodeManager thingNodeManager = ((IThingNodeManager)getApplication());
+		thingNodeManager.addThingNodeListener(this);
 		
-		lanNodes = getLanNodesWithDevices(lanNodeManager.getLanNodes());
-		lanNodesAdapter = new LanNodesAdapter(this, lanNodes);
-		lanNodesAdapter.setHasStableIds(true);
-		lanNodesView.setAdapter(lanNodesAdapter);
+		thingNodes = getThingNodesWithAmberWatchs(thingNodeManager.getThingNodes());
+		thingNodesAdapter = new ThingNodesAdapter(this, thingNodes);
+		thingNodesAdapter.setHasStableIds(true);
+		thingNodesView.setAdapter(thingNodesAdapter);
 		
 		logger.info("Amberbridge started.");
 	}
 	
-	private List<LanNode> getLanNodesWithDevices(LanNode[] lanNodes) {
-		List<LanNode> lanNodesWithDevices = new ArrayList<>();
+	private List<ThingNode> getThingNodesWithAmberWatchs(ThingNode[] thingNodes) {
+		List<ThingNode> thingNodesWithDevices = new ArrayList<>();
 		
-		for (LanNode lanNode : lanNodes) {
-			AmberWatch device = AmberWatch.createInstance(getAdapter(), lanNode.getThing());
-			lanNodesWithDevices.add(new LanNode(lanNode.getLanId(), device));
+		for (ThingNode thingNode : thingNodes) {
+			AmberWatch device = AmberWatch.createInstance(getAdapter(), thingNode.getThing());
+			thingNodesWithDevices.add(new ThingNode(thingNode.getLanId(), device));
 		}
 		
-		return lanNodesWithDevices;
+		return thingNodesWithDevices;
 	}
 	
 	private BluetoothAdapter getAdapter() {
@@ -230,16 +223,17 @@ public class MainActivity extends AppCompatActivity implements
 	
 	@Override
 	public void thingAdded(IBleThing thing) {
-		LanNode lanNode = new LanNode(null, AmberWatch.createInstance(getAdapter(), thing));
-		if (!lanNodes.contains(lanNode)) {
+		ThingNode thingNode = new ThingNode(null, AmberWatch.createInstance(getAdapter(), thing));
+		if (!thingNodes.contains(thingNode)) {
 			logger.info(String.format("Device added. Device: %s.", thing));
-			lanNodes.add(lanNode);
+			thingNodes.add(thingNode);
 			
-			lanNodesAdapter.notifyDataSetChanged();
+			thingNodesAdapter.notifyDataSetChanged();
 		}
 	}
 	
 	@Override
 	public void nodeAdded(String thingId, int lanId) {
+		thingNodesAdapter.notifyDataSetChanged();
 	}
 }

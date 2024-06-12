@@ -1,14 +1,14 @@
 package com.thefirstlineofcode.amber.bridge;
 
-public class LanNode {
+public class ThingNode {
 	private Integer lanId;
 	private IBleThing thing;
 	
-	public LanNode() {
+	public ThingNode() {
 		this(null, null);
 	}
 	
-	public LanNode(Integer lanId, IBleThing thing) {
+	public ThingNode(Integer lanId, IBleThing thing) {
 		this.thing = thing;
 		
 		setLanId(lanId);
@@ -35,11 +35,11 @@ public class LanNode {
 		if (obj == this) {
 			return true;
 		}
-		if (!(obj instanceof LanNode)) {
+		if (!(obj instanceof ThingNode)) {
 			return false;
 		}
 		
-		LanNode other = (LanNode)obj;
+		ThingNode other = (ThingNode)obj;
 		if (lanId == null && other.lanId != null)
 			return false;
 		
@@ -67,6 +67,6 @@ public class LanNode {
 	
 	@Override
 	public String toString() {
-		return String.format("LanNode[%s: %s, %s]", lanId, lanId, thing);
+		return String.format("ThingNode[%s: %s, %s]", lanId, thing.getName(), thing.getAddress());
 	}
 }

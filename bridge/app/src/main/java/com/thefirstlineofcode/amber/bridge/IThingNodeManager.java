@@ -1,15 +1,15 @@
 package com.thefirstlineofcode.amber.bridge;
 
-public interface ILanNodeManager {
+public interface IThingNodeManager {
 	public interface Listener {
 		void thingAdded(IBleThing thing);
 		void nodeAdded(String thingId, int lanId);
 	}
 	
-	LanNode[] getLanNodes();
+	ThingNode[] getThingNodes();
 	void addThing(IBleThing thing);
 	void nodeAdded(String thingId, int lanId);
-	void addLanNodeListener(Listener listener);
-	boolean removeLanNodeListener(Listener listener);
-	void saveLanNodes();
+	void addThingNodeListener(Listener listener);
+	boolean removeThingNodeListener(Listener listener);
+	void saveThingNodes();
 }

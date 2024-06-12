@@ -12,12 +12,6 @@ import android.os.Build;
 import androidx.core.app.ActivityCompat;
 
 import com.thefirstlineofcode.chalk.android.logger.LogConfigurator;
-import com.thefirstlineofcode.chalk.core.IChatClient;
-import com.thefirstlineofcode.chalk.core.StandardChatClient;
-import com.thefirstlineofcode.chalk.core.stream.StandardStreamConfig;
-import com.thefirstlineofcode.sand.client.actuator.ActuatorPlugin;
-import com.thefirstlineofcode.sand.client.ibtr.IbtrPlugin;
-import com.thefirstlineofcode.sand.client.sensor.SensorPlugin;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,22 +26,20 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 
-public class MainApplication extends Application implements ILanNodeManager, IHostConfigurationManager {
+public class MainApplication extends Application implements IThingNodeManager, IHostConfigurationManager {
 	public static final String APP_NAME_AMBERBRIDGE = "amberbridge";
-	private static final String FILE_PATH_LAN_NODES_PROPERTIES = ".com.thefirstlineofcode.amber/lan-nodes.properties";
+	private static final String FILE_PATH_THING_NODES_PROPERTIES = ".com.thefirstlineofcode.amber/thing-nodes.properties";
 	private static final String FILE_PATH_HOSTS_PROPERTIES = ".com.thefirstlineofcode.amber/hosts.properties";
 	
 	private static final Logger logger = LoggerFactory.getLogger(MainApplication.class);
 	
 	private static MainApplication instance;
 	
-	private List<LanNode> lanNodes;
+	private List<ThingNode> thingNodes;
 	private List<Listener> listeners;
 	
 	private MainActivity mainActivity;
@@ -70,7 +62,7 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 		Thread.setDefaultUncaughtExceptionHandler(handler);
 		
 		listeners = new ArrayList<>();
-		lanNodes = loadLanNodes();
+		thingNodes = loadThingNodes();
 		
 		hostConfigurations = loadHostConfigurations();
 		hostConfigurationsChanged = false;
@@ -141,62 +133,62 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 		return instance;
 	}
 	
-	public List<LanNode> loadLanNodes() {
+	public List<ThingNode> loadThingNodes() {
 		File dataDir = getApplicationContext().getFilesDir();
-		File lanNodesPropertiesFile = dataDir.toPath().resolve(FILE_PATH_LAN_NODES_PROPERTIES).toFile();
+		File thingNodesPropertiesFile = dataDir.toPath().resolve(FILE_PATH_THING_NODES_PROPERTIES).toFile();
 		
-		if (!lanNodesPropertiesFile.exists())
+		if (!thingNodesPropertiesFile.exists())
 			return new ArrayList<>();
 		
-		Properties lanNodesProperties = new Properties();
+		Properties thingNodesProperties = new Properties();
 		try {
-			lanNodesProperties.load(new BufferedReader(new FileReader(lanNodesPropertiesFile)));
+			thingNodesProperties.load(new BufferedReader(new FileReader(thingNodesPropertiesFile)));
 			
-			List<LanNode> lanNodes = new ArrayList<>();
-			for (String thingId : lanNodesProperties.stringPropertyNames()) {
-				lanNodes.add(createLanNode(thingId, lanNodesProperties.getProperty(thingId)));
+			List<ThingNode> thingNodes = new ArrayList<>();
+			for (String thingId : thingNodesProperties.stringPropertyNames()) {
+				thingNodes.add(createThingNode(thingId, thingNodesProperties.getProperty(thingId)));
 			}
 			
-			return Collections.unmodifiableList(lanNodes);
+			return Collections.unmodifiableList(thingNodes);
 		} catch (IOException e) {
 			logger.error("Can't load LAN nodes from LAN nodes properties file. We will remove LAN nodes properties file and your all LAN nodes data will lost.");
-			lanNodesPropertiesFile.delete();
+			thingNodesPropertiesFile.delete();
 			
 			return null;
 		}
 	}
 	
-	private LanNode createLanNode(String thingId, String lanNodeDetails) {
-		StringTokenizer st = new StringTokenizer(lanNodeDetails, ",");
+	private ThingNode createThingNode(String thingId, String thingNodeDetails) {
+		StringTokenizer st = new StringTokenizer(thingNodeDetails, ",");
 		if (st.countTokens() != 3)
-			throw new IllegalArgumentException("Illegal LAN node details info.");
+			throw new IllegalArgumentException("Illegal thing node details info.");
 		
 		Integer lanId = Integer.parseInt(st.nextToken());
 		String thingName = st.nextToken();
 		String thingAddress = st.nextToken();
 		
-		return new LanNode(lanId == 0 ? null : lanId, new BleThing(thingId, thingName, thingAddress));
+		return new ThingNode(lanId == 0 ? null : lanId, new BleThing(thingId, thingName, thingAddress));
 	}
 	
 	@Override
-	public LanNode[] getLanNodes() {
-		if (lanNodes == null || lanNodes.size() == 0)
-			return new LanNode[0];
+	public ThingNode[] getThingNodes() {
+		if (thingNodes == null || thingNodes.size() == 0)
+			return new ThingNode[0];
 		
-		return lanNodes.toArray(new LanNode[lanNodes.size()]);
+		return thingNodes.toArray(new ThingNode[thingNodes.size()]);
 	}
 	
 	@Override
 	public void addThing(IBleThing thing) {
-		LanNode lanNode = new LanNode(null, thing);
-		if (lanNodes.contains(lanNode)) {
+		ThingNode thingNode = new ThingNode(null, thing);
+		if (thingNodes.contains(thingNode)) {
 			if (logger.isWarnEnabled())
 				logger.warn(String.format("Try to add a existed thing. Thing: %s.", thing));
 			
 			return;
 		}
 		
-		lanNodes.add(lanNode);
+		thingNodes.add(thingNode);
 		notifyThingAdded(thing);
 	}
 	
@@ -207,50 +199,56 @@ public class MainApplication extends Application implements ILanNodeManager, IHo
 	
 	@Override
 	public void nodeAdded(String thingId, int lanId) {
-	
+		for (ThingNode thingNode : thingNodes) {
+			if (thingNode.getThing().getThingId().equals(thingId)) {
+				thingNode.setLanId(lanId);
+				
+				return;
+			}
+		}
 	}
 	
 	@Override
-	public void addLanNodeListener(Listener listener) {
+	public void addThingNodeListener(Listener listener) {
 		if (!listeners.contains(listener))
 			listeners.add(listener);
 	}
 	
 	@Override
-	public boolean removeLanNodeListener(Listener listener) {
+	public boolean removeThingNodeListener(Listener listener) {
 		return listeners.remove(listener);
 	}
 	
 	@Override
-	public void saveLanNodes() {
-		Properties lanNodesProperties = new Properties();
-		for (LanNode lanNode : lanNodes) {
-			lanNodesProperties.put(lanNode.getThing().getThingId(), getLanNodeDetails(lanNode));
+	public void saveThingNodes() {
+		Properties thingNodesProperties = new Properties();
+		for (ThingNode thingNode : thingNodes) {
+			thingNodesProperties.put(thingNode.getThing().getThingId(), getThingNodeDetails(thingNode));
 		}
 		
 		File dataDir = getApplicationContext().getFilesDir();
-		File lanNodesPropertiesFile = dataDir.toPath().resolve(FILE_PATH_LAN_NODES_PROPERTIES).toFile();
+		File thingNodesPropertiesFile = dataDir.toPath().resolve(FILE_PATH_THING_NODES_PROPERTIES).toFile();
 		
-		if (!lanNodesPropertiesFile.getParentFile().exists()) {
+		if (!thingNodesPropertiesFile.getParentFile().exists()) {
 			try {
-				Files.createDirectories(lanNodesPropertiesFile.getParentFile().toPath());
+				Files.createDirectories(thingNodesPropertiesFile.getParentFile().toPath());
 			} catch (IOException e) {
 				throw new RuntimeException(String.format("Can't create path: %s",
-						lanNodesPropertiesFile.getParentFile().getAbsolutePath()), e);
+						thingNodesPropertiesFile.getParentFile().getAbsolutePath()), e);
 			}
 		}
 		
 		try {
-			lanNodesProperties.store(new BufferedWriter(new FileWriter(lanNodesPropertiesFile)), null);
+			thingNodesProperties.store(new BufferedWriter(new FileWriter(thingNodesPropertiesFile)), null);
 		} catch (IOException e) {
-			logger.error("Can't save LAN nodes to LAN nodes properties file. We will remove LAN nodes properties file and your all LAN nodes data will lost.");
-			throw new RuntimeException("Can't save LAN nodes.");
+			logger.error("Can't save thing nodes to thing nodes properties file. We will remove thing nodes properties file and your all LAN nodes data will lost.");
+			throw new RuntimeException("Can't save thing nodes.");
 		}
 	}
 	
-	private String getLanNodeDetails(LanNode lanNode) {
-		return String.format("%d,%s,%s", lanNode.getLanId() == null ? 0 : lanNode.getLanId(),
-				lanNode.getThing().getName(), lanNode.getThing().getAddress());
+	private String getThingNodeDetails(ThingNode thingNode) {
+		return String.format("%d,%s,%s", thingNode.getLanId() == null ? 0 : thingNode.getLanId(),
+				thingNode.getThing().getName(), thingNode.getThing().getAddress());
 	}
 	
 	public static boolean checkBluetoothAvailable(Context context) {

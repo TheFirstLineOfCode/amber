@@ -238,7 +238,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 				
 				batteryLevelChanged(batteryLevel);
 			} else if (characteristic.getUuid().equals(UUID_CHARACTERISTIC_HEART_RATE_MEASUREMENT)) {
-				int heartRate = ((int)characteristic.getValue()[1]) & 0xff;
+				int heartRate = ((int) characteristic.getValue()[1]) & 0xff;
 				heartRateChanged(heartRate);
 			} else if (characteristic.getUuid().equals(UUID_CHARACTERISTIC_MOTION_STEP_COUNT)) {
 				byte[] value = characteristic.getValue();
@@ -396,7 +396,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		} catch (SecurityException e) {
 			AmberUtils.toastInService(String.format(
 					"Security exception threw when calling gatt.setCharacteristicNotification(). Device: %s.",
-						AmberWatch.this.bluetoothDevice));
+					AmberWatch.this.bluetoothDevice));
 		}
 	}
 	
@@ -463,7 +463,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 	}
 	
 	private byte fromUint8(int value) {
-		return (byte)(value & 0xff);
+		return (byte) (value & 0xff);
 	}
 	
 	private byte[] toUtf8s(String message) {

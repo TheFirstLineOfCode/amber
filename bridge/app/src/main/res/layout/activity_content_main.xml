@@ -18,7 +18,7 @@
         app:srcCompat="@drawable/amberbridge_img" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/lanNodesView"
+        android:id="@+id/thingNodesView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_alignParentTop="true"

@@ -44,8 +44,8 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 
     implementation 'com.thefirstlineofcode.chalk:chalk-android:1.0.3-RELEASE'
-    implementation 'com.thefirstlineofcode.sand.client:sand-client-ibtr:1.1.0-BETA2'
-    implementation 'com.thefirstlineofcode.sand.client:sand-client-sensor:1.1.0-BETA2'
-    implementation 'com.thefirstlineofcode.sand.client:sand-client-actuator:1.1.0-BETA2'
-    implementation 'com.thefirstlineofcode.sand.client:sand-client-concentrator:1.1.0-BETA2'
+    implementation 'com.thefirstlineofcode.sand.client:sand-client-ibtr:1.2.0-BETA1'
+    implementation 'com.thefirstlineofcode.sand.client:sand-client-sensor:1.2.0-BETA1'
+    implementation 'com.thefirstlineofcode.sand.client:sand-client-actuator:1.2.0-BETA1'
+    implementation 'com.thefirstlineofcode.sand.client:sand-client-concentrator:1.2.0-BETA1'
 }

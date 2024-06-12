@@ -2,7 +2,6 @@ package com.thefirstlineofcode.amber.bridge;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanRecord;
@@ -287,10 +286,10 @@ public class DiscoveryActivity extends AppCompatActivity
 	private void deviceFound(BluetoothDevice device) throws SecurityException {
 		finish();
 		
-		ILanNodeManager lanNodeManager = (MainApplication)getApplication();
+		IThingNodeManager lanNodeManager = (MainApplication)getApplication();
 		lanNodeManager.addThing(
 				new BleThing(String.format("amber-%s", ThingsUtils.generateRandomId(9)), device.getName(), device.getAddress()));
-		lanNodeManager.saveLanNodes();
+		lanNodeManager.saveThingNodes();
 	}
 	
 	public void onStartButtonClick(View button) {

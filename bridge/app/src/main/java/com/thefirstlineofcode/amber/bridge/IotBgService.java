@@ -2,11 +2,9 @@ package com.thefirstlineofcode.amber.bridge;
 
 import android.app.Service;
 import android.content.Intent;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
-import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.thefirstlineofcode.chalk.android.StandardChatClient;
@@ -18,27 +16,32 @@ import com.thefirstlineofcode.chalk.network.ConnectionException;
 import com.thefirstlineofcode.chalk.network.IConnectionListener;
 import com.thefirstlineofcode.sand.client.actuator.ActuatorPlugin;
 import com.thefirstlineofcode.sand.client.concentrator.ConcentratorPlugin;
+import com.thefirstlineofcode.sand.client.concentrator.IConcentrator;
+import com.thefirstlineofcode.sand.client.concentrator.LanNode;
 import com.thefirstlineofcode.sand.client.ibtr.IRegistration;
 import com.thefirstlineofcode.sand.client.ibtr.IbtrError;
 import com.thefirstlineofcode.sand.client.ibtr.IbtrPlugin;
 import com.thefirstlineofcode.sand.client.ibtr.RegistrationException;
 import com.thefirstlineofcode.sand.client.sensor.SensorPlugin;
 import com.thefirstlineofcode.sand.client.thing.ThingsUtils;
+import com.thefirstlineofcode.sand.protocols.thing.CommunicationNet;
 import com.thefirstlineofcode.sand.protocols.thing.RegisteredEdgeThing;
+import com.thefirstlineofcode.sand.protocols.thing.lora.BleAddress;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class IotBgService extends Service implements IIotBgService,
-		IIotBgService.IEdgeThingStateistener, IConnectionListener {
+public class IotBgService extends Service implements IIotBgService, IConnectionListener {
 	private static final Logger logger = LoggerFactory.getLogger(IotBgService.class);
 	
 	private HostConfiguration hostConfiguration;
 	private IChatClient chatClient;
-	private List<IEdgeThingStateistener> edgeThingRegistrationListeners;
+	private IConcentrator concentratorMaybeNull;
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
@@ -46,9 +49,6 @@ public class IotBgService extends Service implements IIotBgService,
 		hostConfiguration = MainApplication.getInstance().getHostConfiguration(host);
 		if (hostConfiguration == null)
 			throw new IllegalArgumentException(String.format("Can't get host configuration for host '%s'.", host));
-		
-		edgeThingRegistrationListeners = new ArrayList<>();
-		addEdgeThingStateListener(this);
 		
 		chatClient = createChaClient(hostConfiguration);
 		if (!isEdgeThingRegistered()) {
@@ -75,7 +75,6 @@ public class IotBgService extends Service implements IIotBgService,
 	
 	private IChatClient createChaClient(HostConfiguration hostConfiguration) {
 		IChatClient chatClient = new StandardChatClient(getStreamConfig(hostConfiguration));
-		
 		registerPlugins(chatClient);
 		
 		return chatClient;
@@ -116,9 +115,7 @@ public class IotBgService extends Service implements IIotBgService,
 		try {
 			RegisteredEdgeThing registeredEdgeThing = registration.register(
 					hostConfiguration.getThingName(),"abcdefghijkl");
-			for (IEdgeThingStateistener edgeThingRegistrationistener : edgeThingRegistrationListeners) {
-				edgeThingRegistrationistener.edgeThingRegistered(registeredEdgeThing);
-			}
+			edgeThingRegistered(registeredEdgeThing);
 		} catch (RegistrationException e) {
 			if (e.getError() == IbtrError.NOT_AUTHORIZED) {
 				MainApplication.getInstance().updateHostConfiguration(hostConfiguration);
@@ -132,7 +129,6 @@ public class IotBgService extends Service implements IIotBgService,
 				
 				AmberUtils.toastInService("Failed to register edge thing to host.");
 			}
-			
 		}
 	}
 	
@@ -156,9 +152,7 @@ public class IotBgService extends Service implements IIotBgService,
 			chatClient.connect(new UsernamePasswordToken(
 					hostConfiguration.getThingName(), hostConfiguration.getThingCredentials()));
 			
-			for (IEdgeThingStateistener edgeThingStateistener : edgeThingRegistrationListeners) {
-				edgeThingStateistener.hostConnected();
-			}
+			hostConnected();
 		} catch (ConnectionException e) {
 			AmberUtils.toastInService(String.format("Can't connect to host. Connection exception type: %s.", e.getType()));
 		} catch (AuthFailureException e) {
@@ -168,6 +162,7 @@ public class IotBgService extends Service implements IIotBgService,
 	
 	@Override
 	public void disconnectFromHost() {
+		concentratorMaybeNull = null;
 		if (chatClient.isConnected())
 			chatClient.close();
 	}
@@ -178,23 +173,21 @@ public class IotBgService extends Service implements IIotBgService,
 	}
 	
 	@Override
-	public void addEdgeThingStateListener(IEdgeThingStateistener listener) {
-		if (!edgeThingRegistrationListeners.contains(listener))
-			edgeThingRegistrationListeners.add(listener);
-	}
-	
-	@Override
-	public boolean removeEdgeThingStateListener(IEdgeThingStateistener listener) {
-		return edgeThingRegistrationListeners.remove(listener);
-	}
-	
-	@Override
 	public int addDeviceAsNode(IBleDevice device) {
+		if (!isConnectedToHost()) {
+			AmberUtils.toastInService("Not connected to host.");
+			return 0;
+		}
+		
+		IConcentrator concentrator = getConcentrator();
+		concentrator.requestServerToAddNode(device.getThingId(),
+				"abcdefghijkl", concentrator.getBestSuitedNewLanId(),
+				new BleAddress(device.getAddress()));
+		
 		return 0;
 	}
 	
-	@Override
-	public void edgeThingRegistered(RegisteredEdgeThing registeredEdgeThing) {
+	private void edgeThingRegistered(RegisteredEdgeThing registeredEdgeThing) {
 		hostConfiguration.setThingName(registeredEdgeThing.getThingName());
 		hostConfiguration.setThingCredentials(registeredEdgeThing.getCredentials());
 		
@@ -205,15 +198,11 @@ public class IotBgService extends Service implements IIotBgService,
 	}
 	
 	@Override
-	public void connectionExceptionOccurred(ConnectionException exception) {
+	public void exceptionOccurred(ConnectionException exception) {
 		disconnectFromHost();
 		
 		AmberUtils.toastInService(String.format("Connection exception threw. Connection error type: %s.",
 				exception.getType()));
-		
-		for (IEdgeThingStateistener edgeThingStateistener : edgeThingRegistrationListeners) {
-			edgeThingStateistener.connectionExceptionOccurred(exception);
-		}
 		
 		try {
 			Thread.sleep(30 * 1000);
@@ -225,13 +214,61 @@ public class IotBgService extends Service implements IIotBgService,
 		connectToHost();
 	}
 	
-	@Override
 	public void hostConnected() {}
 	
-	@Override
-	public void exceptionOccurred(ConnectionException exception) {
-		for (IEdgeThingStateistener edgeThingStateistener : edgeThingRegistrationListeners)
-			edgeThingStateistener.connectionExceptionOccurred(exception);
+	private IConcentrator getConcentrator() {
+		if (concentratorMaybeNull != null)
+			return concentratorMaybeNull;
+		
+		Map<Integer, LanNode> lanNodes = new HashMap<Integer, LanNode>();
+		IThingNodeManager lanNodeManager = (MainApplication)getApplication();
+		ThingNode[] thingNodes = lanNodeManager.getThingNodes();
+		for (ThingNode thingNode : thingNodes) {
+			if (thingNode.getLanId() != 0) {
+				lanNodes.put(thingNode.getLanId(), thingNodeToLanNode(thingNode));
+			}
+		}
+		
+		concentratorMaybeNull = chatClient.createApi(IConcentrator.class);
+		concentratorMaybeNull.setNodes(lanNodes);
+		
+		concentratorMaybeNull.addListener(new IConcentrator.Listener() {
+			@Override
+			public void nodeAdded(int lanId, LanNode node) {
+				IThingNodeManager thingNodeManager = (IThingNodeManager) MainApplication.getInstance();
+				thingNodeManager.nodeAdded(node.getThingId(), lanId);
+				thingNodeManager.saveThingNodes();
+				
+				
+			}
+			
+			@Override
+			public void nodeReset(int lanId, LanNode node) {}
+			
+			@Override
+			public void nodeRemoved(int lanId, LanNode node) {}
+			
+			@Override
+			public void occurred(IConcentrator.AddNodeError error, LanNode source) {
+				AmberUtils.toastInService(String.format("Failed to add watch as node. Error: %s.", error));
+			}
+		});
+		
+		return concentratorMaybeNull;
+	}
+	
+	@NonNull
+	private LanNode thingNodeToLanNode(ThingNode thingNode) {
+		LanNode lanNode = new LanNode();
+		lanNode.setLanId(thingNode.getLanId());
+		lanNode.setThingId(thingNode.getThing().getThingId());
+		lanNode.setAddress(thingNode.getThing().getAddress());
+		lanNode.setConfirmed(true);
+		lanNode.setCommunicationNet(CommunicationNet.BLE);
+		lanNode.setModel("Amber-Watch");
+		lanNode.setRegistrationCode("abcdefghijkl");
+		
+		return lanNode;
 	}
 	
 	@Override

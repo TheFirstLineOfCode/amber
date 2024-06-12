@@ -22,18 +22,18 @@ import com.google.android.material.card.MaterialCardView;
 
 import java.util.List;
 
-public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHolder> implements IBleDevice.StateListener {
-	private List<LanNode> lanNodes;
+public class ThingNodesAdapter extends ListAdapter<ThingNode, ThingNodesAdapter.ViewHolder> implements IBleDevice.StateListener {
+	private List<ThingNode> thingNodes;
 	private MainActivity mainActivity;
 	
-	public LanNodesAdapter(MainActivity mainActivity, List<LanNode> lanNodes) {
+	public ThingNodesAdapter(MainActivity mainActivity, List<ThingNode> thingNodes) {
 		super(new LanNodeDiffItemCallback());
 		
-		this.lanNodes = lanNodes;
+		this.thingNodes = thingNodes;
 		this.mainActivity = mainActivity;
 		
-		for (LanNode lanNode : lanNodes) {
-			((AmberWatch)lanNode.getThing()).addStateListener(this);
+		for (ThingNode thingNode : thingNodes) {
+			((AmberWatch)thingNode.getThing()).addStateListener(this);
 		}
 	}
 	
@@ -46,15 +46,15 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 	
 	@Override
 	public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-		LanNode lanNode = lanNodes.get(position);
+		ThingNode thingNode = thingNodes.get(position);
 		
-		IBleThing thing = lanNode.getThing();
+		IBleThing thing = thingNode.getThing();
 		if (!(thing instanceof AmberWatch))
 			throw new IllegalArgumentException("Not amber watch.");
 		
 		AmberWatch device = (AmberWatch)thing;
 		holder.deviceNameLabel.setText(String.format("%s - %s-%s",
-				getLanNodeText(lanNode), device.getName(), device.getAddress()));
+				getLanIdText(thingNode), device.getName(), device.getAddress()));
 		
 		IBleDevice.State deviceState =  device.getState();
 		String sDeviceStatus = null;
@@ -69,19 +69,19 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		holder.deviceInfoView.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View view) {
-				showDeviceSubmenu(view, lanNode);
+				showDeviceSubmenu(view, thingNode);
 			}
 		});
 		
 		holder.batteryIcon.setImageResource(getBatteryIcon(device.getBatteryLevel()));
 	}
 	
-	private Object getLanNodeText(LanNode lanNode) {
-		return lanNode.getLanId() == null ? "?" : lanNode.getLanId();
+	private Object getLanIdText(ThingNode thingNode) {
+		return thingNode.getLanId() == null ? "?" : thingNode.getLanId();
 	}
 	
-	private void showDeviceSubmenu(final View v, final LanNode lanNode) {
-		IBleDevice device = (AmberWatch) lanNode.getThing();
+	private void showDeviceSubmenu(final View v, final ThingNode thingNode) {
+		IBleDevice device = (AmberWatch) thingNode.getThing();
 		IBleDevice.State state = device.getState();
 		
 		PopupMenu menu = new PopupMenu(v.getContext(), v);
@@ -98,7 +98,7 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 			menu.getMenu().findItem(R.id.device_submenu_connect).setVisible(false);
 		}
 		
-		if (lanNode.getLanId() != null) {
+		if (thingNode.getLanId() != null) {
 			menu.getMenu().findItem(R.id.device_submenu_add_device_as_node).setVisible(false);
 		}
 		
@@ -113,7 +113,7 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 						device.disconnect();
 						return true;
 					case R.id.device_submenu_add_device_as_node:
-						addDeviceAsNode((IBleDevice)lanNode.getThing());
+						addDeviceAsNode((IBleDevice) thingNode.getThing());
 						return true;
 					case R.id.device_submenu_send_message:
 						sendMessageToDevice(device);
@@ -132,8 +132,6 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 			throw new IllegalArgumentException("Not amber watch.");
 		
 		AmberWatch watch = (AmberWatch)device;
-		
-		
 	}
 	
 	private void sendMessageToDevice(IBleDevice device) {
@@ -214,8 +212,8 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 	}
 	
 	private void itemChanged(IBleDevice device) {
-		for (int i = 0; i < lanNodes.size(); i++) {
-			if (lanNodes.get(i).getThing().equals(device)) {
+		for (int i = 0; i < thingNodes.size(); i++) {
+			if (thingNodes.get(i).getThing().equals(device)) {
 				notifyItemChanged(i);
 			}
 		}
@@ -251,9 +249,9 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		}
 	}
 	
-	private static class LanNodeDiffItemCallback extends DiffUtil.ItemCallback<LanNode> {
+	private static class LanNodeDiffItemCallback extends DiffUtil.ItemCallback<ThingNode> {
 		@Override
-		public boolean areItemsTheSame(@NonNull LanNode oldItem, @NonNull LanNode newItem) {
+		public boolean areItemsTheSame(@NonNull ThingNode oldItem, @NonNull ThingNode newItem) {
 			if (oldItem == null || newItem == null)
 				return false;
 			
@@ -267,22 +265,22 @@ public class LanNodesAdapter extends ListAdapter<LanNode, LanNodesAdapter.ViewHo
 		}
 		
 		@Override
-		public boolean areContentsTheSame(@NonNull LanNode oldItem, @NonNull LanNode newItem) {
+		public boolean areContentsTheSame(@NonNull ThingNode oldItem, @NonNull ThingNode newItem) {
 			return areItemsTheSame(oldItem, newItem);
 		}
 	}
 	
 	@Override
 	public int getItemCount() {
-		if (lanNodes == null)
+		if (thingNodes == null)
 			return 0;
 		
-		return lanNodes.size();
+		return thingNodes.size();
 	}
 	
 	@Override
-	protected LanNode getItem(int position) {
-		return lanNodes.get(position);
+	protected ThingNode getItem(int position) {
+		return thingNodes.get(position);
 	}
 	
 	@Override

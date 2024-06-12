@@ -5,19 +5,11 @@ import com.thefirstlineofcode.chalk.network.ConnectionException;
 import com.thefirstlineofcode.sand.protocols.thing.RegisteredEdgeThing;
 
 public interface IIotBgService {
-	public interface IEdgeThingStateistener {
-		void edgeThingRegistered(RegisteredEdgeThing registeredEdgeThing);
-		void connectionExceptionOccurred(ConnectionException exception);
-		void hostConnected();
-	}
-	
 	HostConfiguration getHostConfiguration();
 	void registerEdgeThing();
 	boolean isEdgeThingRegistered();
 	void connectToHost();
 	void disconnectFromHost();
 	boolean isConnectedToHost();
-	void addEdgeThingStateListener(IEdgeThingStateistener listener);
-	boolean removeEdgeThingStateListener(IEdgeThingStateistener listener);
 	int addDeviceAsNode(IBleDevice device);
 }
