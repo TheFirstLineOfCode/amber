@@ -36,7 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class IotBgService extends Service implements IIotBgService, IConnectionListener {
+public class IotBgService extends Service implements IIotBgService,
+		IConnectionListener {
 	private static final Logger logger = LoggerFactory.getLogger(IotBgService.class);
 	
 	private HostConfiguration hostConfiguration;
@@ -172,21 +173,6 @@ public class IotBgService extends Service implements IIotBgService, IConnectionL
 		return chatClient.isConnected();
 	}
 	
-	@Override
-	public int addDeviceAsNode(IBleDevice device) {
-		if (!isConnectedToHost()) {
-			AmberUtils.toastInService("Not connected to host.");
-			return 0;
-		}
-		
-		IConcentrator concentrator = getConcentrator();
-		concentrator.requestServerToAddNode(device.getThingId(),
-				"abcdefghijkl", concentrator.getBestSuitedNewLanId(),
-				new BleAddress(device.getAddress()));
-		
-		return 0;
-	}
-	
 	private void edgeThingRegistered(RegisteredEdgeThing registeredEdgeThing) {
 		hostConfiguration.setThingName(registeredEdgeThing.getThingName());
 		hostConfiguration.setThingCredentials(registeredEdgeThing.getCredentials());
@@ -216,14 +202,14 @@ public class IotBgService extends Service implements IIotBgService, IConnectionL
 	
 	public void hostConnected() {}
 	
-	private IConcentrator getConcentrator() {
+	@Override
+	public IConcentrator getConcentrator() {
 		if (concentratorMaybeNull != null)
 			return concentratorMaybeNull;
 		
 		Map<Integer, LanNode> lanNodes = new HashMap<Integer, LanNode>();
 		IThingNodeManager lanNodeManager = (MainApplication)getApplication();
-		ThingNode[] thingNodes = lanNodeManager.getThingNodes();
-		for (ThingNode thingNode : thingNodes) {
+		for (ThingNode thingNode : lanNodeManager.getThingNodes()) {
 			if (thingNode.getLanId() != 0) {
 				lanNodes.put(thingNode.getLanId(), thingNodeToLanNode(thingNode));
 			}
@@ -231,28 +217,6 @@ public class IotBgService extends Service implements IIotBgService, IConnectionL
 		
 		concentratorMaybeNull = chatClient.createApi(IConcentrator.class);
 		concentratorMaybeNull.setNodes(lanNodes);
-		
-		concentratorMaybeNull.addListener(new IConcentrator.Listener() {
-			@Override
-			public void nodeAdded(int lanId, LanNode node) {
-				IThingNodeManager thingNodeManager = (IThingNodeManager) MainApplication.getInstance();
-				thingNodeManager.nodeAdded(node.getThingId(), lanId);
-				thingNodeManager.saveThingNodes();
-				
-				
-			}
-			
-			@Override
-			public void nodeReset(int lanId, LanNode node) {}
-			
-			@Override
-			public void nodeRemoved(int lanId, LanNode node) {}
-			
-			@Override
-			public void occurred(IConcentrator.AddNodeError error, LanNode source) {
-				AmberUtils.toastInService(String.format("Failed to add watch as node. Error: %s.", error));
-			}
-		});
 		
 		return concentratorMaybeNull;
 	}

@@ -1,8 +1,6 @@
 package com.thefirstlineofcode.amber.bridge;
 
-import com.thefirstlineofcode.chalk.core.AuthFailureException;
-import com.thefirstlineofcode.chalk.network.ConnectionException;
-import com.thefirstlineofcode.sand.protocols.thing.RegisteredEdgeThing;
+import com.thefirstlineofcode.sand.client.concentrator.IConcentrator;
 
 public interface IIotBgService {
 	HostConfiguration getHostConfiguration();
@@ -11,5 +9,5 @@ public interface IIotBgService {
 	void connectToHost();
 	void disconnectFromHost();
 	boolean isConnectedToHost();
-	int addDeviceAsNode(IBleDevice device);
+	IConcentrator getConcentrator();
 }

@@ -113,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements
 		logger.info("Amberbridge started.");
 	}
 	
-	private List<ThingNode> getThingNodesWithAmberWatchs(ThingNode[] thingNodes) {
+	private List<ThingNode> getThingNodesWithAmberWatchs(List<ThingNode> thingNodes) {
 		List<ThingNode> thingNodesWithDevices = new ArrayList<>();
 		
 		for (ThingNode thingNode : thingNodes) {
@@ -234,6 +234,21 @@ public class MainActivity extends AppCompatActivity implements
 	
 	@Override
 	public void nodeAdded(String thingId, int lanId) {
-		thingNodesAdapter.notifyDataSetChanged();
+		int position = -1;
+		for (int i = 0; i < thingNodes.size(); i++) {
+			if (thingNodes.get(i).getThing().getThingId().equals(thingId)) {
+				position = i;
+				break;
+			}
+		}
+		
+		if (position == -1)
+			throw new IllegalArgumentException(String.format("Can't find the thing node which's thing ID is %s.", thingId));
+		
+		thingNodesAdapter.notifyItemChanged(position);
+	}
+	
+	public IIotBgService getIotBgService() {
+		return iotBgService;
 	}
 }

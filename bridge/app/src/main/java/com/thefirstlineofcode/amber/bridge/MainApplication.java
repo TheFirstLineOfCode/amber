@@ -149,7 +149,7 @@ public class MainApplication extends Application implements IThingNodeManager, I
 				thingNodes.add(createThingNode(thingId, thingNodesProperties.getProperty(thingId)));
 			}
 			
-			return Collections.unmodifiableList(thingNodes);
+			return thingNodes;
 		} catch (IOException e) {
 			logger.error("Can't load LAN nodes from LAN nodes properties file. We will remove LAN nodes properties file and your all LAN nodes data will lost.");
 			thingNodesPropertiesFile.delete();
@@ -167,15 +167,15 @@ public class MainApplication extends Application implements IThingNodeManager, I
 		String thingName = st.nextToken();
 		String thingAddress = st.nextToken();
 		
-		return new ThingNode(lanId == 0 ? null : lanId, new BleThing(thingId, thingName, thingAddress));
+		return new ThingNode(lanId.intValue() == 0 ? null : lanId, new BleThing(thingId, thingName, thingAddress));
 	}
 	
 	@Override
-	public ThingNode[] getThingNodes() {
+	public List<ThingNode> getThingNodes() {
 		if (thingNodes == null || thingNodes.size() == 0)
-			return new ThingNode[0];
+			return Collections.unmodifiableList(new ArrayList<>());
 		
-		return thingNodes.toArray(new ThingNode[thingNodes.size()]);
+		return Collections.unmodifiableList(thingNodes);
 	}
 	
 	@Override
@@ -198,14 +198,16 @@ public class MainApplication extends Application implements IThingNodeManager, I
 	}
 	
 	@Override
-	public void nodeAdded(String thingId, int lanId) {
+	public boolean nodeAdded(String thingId, int lanId) {
 		for (ThingNode thingNode : thingNodes) {
 			if (thingNode.getThing().getThingId().equals(thingId)) {
 				thingNode.setLanId(lanId);
 				
-				return;
+				return true;
 			}
 		}
+		
+		return false;
 	}
 	
 	@Override

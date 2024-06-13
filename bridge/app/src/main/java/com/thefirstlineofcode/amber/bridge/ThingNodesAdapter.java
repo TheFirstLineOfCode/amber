@@ -19,6 +19,9 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.card.MaterialCardView;
+import com.thefirstlineofcode.sand.client.concentrator.IConcentrator;
+import com.thefirstlineofcode.sand.client.concentrator.LanNode;
+import com.thefirstlineofcode.sand.protocols.thing.lora.BleAddress;
 
 import java.util.List;
 
@@ -91,6 +94,7 @@ public class ThingNodesAdapter extends ListAdapter<ThingNode, ThingNodesAdapter.
 			menu.getMenu().findItem(R.id.device_submenu_connect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
+			menu.getMenu().findItem(R.id.device_submenu_add_device_as_node).setEnabled(false);
 		} else if (state == IBleDevice.State.NOT_CONNECTED) {
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
@@ -127,11 +131,55 @@ public class ThingNodesAdapter extends ListAdapter<ThingNode, ThingNodesAdapter.
 		menu.show();
 	}
 	
-	private void addDeviceAsNode(IBleDevice device) {
+	protected void addDeviceAsNode(IBleDevice device) {
 		if (!(device instanceof AmberWatch))
 			throw new IllegalArgumentException("Not amber watch.");
 		
-		AmberWatch watch = (AmberWatch)device;
+		IIotBgService iotBgService = mainActivity.getIotBgService();
+		if (!iotBgService.isConnectedToHost()) {
+			AmberUtils.toastInService("Not connected to host.");
+			return;
+		}
+		
+		IConcentrator concentrator = iotBgService.getConcentrator();
+		concentrator.addListener(new IConcentrator.Listener() {
+			@Override
+			public void nodeAdded(int lanId, LanNode lanNode) {
+				int position = -1;
+				ThingNode thingNode = null;
+				for (int i = 0; i < thingNodes.size(); i++) {
+					thingNode = thingNodes.get(i);
+					if (thingNode.getThing().getThingId().equals(lanNode.getThingId())) {
+						position = i;
+						thingNode.setLanId(lanId);
+						break;
+					}
+				}
+				
+				if (position == -1)
+					throw new IllegalArgumentException(String.format("Device which's thing ID is '%d' can't be found.", position));
+				
+				MainApplication.getInstance().nodeAdded(lanNode.getThingId(), lanId);
+				itemChanged(thingNode.getThing());
+				AmberUtils.toastInService(String.format(
+						"Device which's thing ID is '%s' has added as node.", lanNode.getThingId()));
+			}
+			
+			@Override
+			public void nodeReset(int lanId, LanNode node) {}
+			
+			@Override
+			public void nodeRemoved(int lanId, LanNode node) {}
+			
+			@Override
+			public void occurred(IConcentrator.AddNodeError error, LanNode source) {
+				AmberUtils.toastInService("Failed to add device as node.");
+			}
+		});
+		
+		concentrator.requestServerToAddNode(device.getThingId(),
+				"abcdefghijkl", concentrator.getBestSuitedNewLanId(),
+				new BleAddress(device.getAddress()));
 	}
 	
 	private void sendMessageToDevice(IBleDevice device) {
@@ -211,9 +259,9 @@ public class ThingNodesAdapter extends ListAdapter<ThingNode, ThingNodesAdapter.
 		itemChanged(device);
 	}
 	
-	private void itemChanged(IBleDevice device) {
+	private void itemChanged(IBleThing thing) {
 		for (int i = 0; i < thingNodes.size(); i++) {
-			if (thingNodes.get(i).getThing().equals(device)) {
+			if (thingNodes.get(i).getThing().equals(thing)) {
 				notifyItemChanged(i);
 			}
 		}
