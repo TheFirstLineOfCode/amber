@@ -288,7 +288,7 @@ public class DiscoveryActivity extends AppCompatActivity
 		
 		IThingNodeManager lanNodeManager = (MainApplication)getApplication();
 		lanNodeManager.addThing(
-				new BleThing(String.format("amber-%s", ThingsUtils.generateRandomId(9)), device.getName(), device.getAddress()));
+				new BleThing(String.format("Amber-Watch-%s", ThingsUtils.generateRandomId(8)), device.getName(), device.getAddress()));
 		lanNodeManager.saveThingNodes();
 	}
 	

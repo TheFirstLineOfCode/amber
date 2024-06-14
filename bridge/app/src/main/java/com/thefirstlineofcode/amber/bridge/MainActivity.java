@@ -3,10 +3,13 @@ package com.thefirstlineofcode.amber.bridge;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.MenuItem;
 import android.view.View;
 
@@ -29,7 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements
-		NavigationView.OnNavigationItemSelectedListener, IThingNodeManager.Listener {
+		NavigationView.OnNavigationItemSelectedListener, IThingNodeManager.Listener,
+			ServiceConnection {
 	private static final Logger logger = LoggerFactory.getLogger(MainActivity.class);
 	
 	public static final int BLUETOOTH_PERMISSIONS_REQUEST_CODE = 200;
@@ -75,6 +79,9 @@ public class MainActivity extends AppCompatActivity implements
 	}
 	
 	private void onCreate() {
+		String host = getIntent().getStringExtra(getString(R.string.current_host));
+		bindIotBgService(host);
+		
 		setContentView(R.layout.activity_main);
 		
 		MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -111,6 +118,14 @@ public class MainActivity extends AppCompatActivity implements
 		thingNodesView.setAdapter(thingNodesAdapter);
 		
 		logger.info("Amberbridge started.");
+	}
+	
+	private void bindIotBgService(String host) {
+		Intent bindIotBgServiceIntent =
+				new Intent(this, IotBgService.class).
+						putExtra(getString(R.string.current_host), host);
+		
+		bindService(bindIotBgServiceIntent, this, BIND_AUTO_CREATE);
 	}
 	
 	private List<ThingNode> getThingNodesWithAmberWatchs(List<ThingNode> thingNodes) {
@@ -250,5 +265,25 @@ public class MainActivity extends AppCompatActivity implements
 	
 	public IIotBgService getIotBgService() {
 		return iotBgService;
+	}
+	
+	@Override
+	public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+		IotBgBinder binder = (IotBgBinder)iBinder;
+		iotBgService = binder.getService();
+	}
+	
+	@Override
+	public void onServiceDisconnected(ComponentName componentName) {
+		logger.warn("IoT background servie has disconnected.");
+		
+		iotBgService = null;
+	}
+	
+	@Override
+	protected void onDestroy() {
+		unbindService(this);
+		
+		super.onDestroy();
 	}
 }

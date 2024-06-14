@@ -59,9 +59,8 @@
     <string name="host_must_be_an_ipv4_address">Host must be a valid IPv4 address.</string>
     <string name="port_cant_be_null">Port can\'t be null.</string>
     <string name="port_must_be_an_positive_integer">Port must be a positive integer.</string>
-    <string name="configured_host">configured-host</string>
-    <string name="available_hosts">available-hosts</string>
     <string name="current_host">current-host</string>
+    <string name="available_hosts">available-hosts</string>
     <string name="ok">Ok</string>
     <string name="cancel">Cancel</string>
     <string name="null_alert_message">Null alert message</string>

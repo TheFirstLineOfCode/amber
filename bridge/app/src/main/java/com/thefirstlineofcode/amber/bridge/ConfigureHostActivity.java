@@ -120,7 +120,7 @@ public class ConfigureHostActivity extends AppCompatActivity {
 			
 			Intent configureSteamActivityIntent =
 				new Intent(ConfigureHostActivity.this, ConfigureStreamActivity.class).
-					putExtra(getString(R.string.configured_host), host);
+					putExtra(getString(R.string.current_host), host);
 			startActivity(configureSteamActivityIntent);
 		}
 	}
@@ -144,12 +144,8 @@ public class ConfigureHostActivity extends AppCompatActivity {
 				if (hostConfigurationManager.isHostConfigurationsChanged())
 					hostConfigurationManager.saveHostConfigurations();
 				
-				Intent iotBgServiceIntent =
-					new Intent(ConfigureHostActivity.this, IotBgService.class).
-						putExtra(ConfigureHostActivity.this.getString(R.string.current_host), host);
-				startService(iotBgServiceIntent);
-				
-				Intent mainActivityIntent = new Intent(ConfigureHostActivity.this, MainActivity.class);
+				Intent mainActivityIntent = new Intent(ConfigureHostActivity.this,
+						MainActivity.class).putExtra(getString(R.string.current_host), host);
 				startActivity(mainActivityIntent);
 			}
 	}

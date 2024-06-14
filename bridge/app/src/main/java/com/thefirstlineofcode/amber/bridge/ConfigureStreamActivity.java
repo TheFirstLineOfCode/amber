@@ -11,13 +11,8 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.thefirstlineofcode.chalk.core.stream.StandardStreamConfig;
-
-import java.net.Inet4Address;
-import java.net.InetAddress;
-
 public class ConfigureStreamActivity extends AppCompatActivity {
-	private String configuredHost;
+	private String currentHost;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -25,13 +20,13 @@ public class ConfigureStreamActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_configure_stream);
 		
 		Intent intent = getIntent();
-		configuredHost = intent.getStringExtra(getString(R.string.configured_host));
-		if (configuredHost == null)
-			throw new RuntimeException("Can't get configured host from intent extra");
+		currentHost = intent.getStringExtra(getString(R.string.current_host));
+		if (currentHost == null)
+			throw new RuntimeException("Can't get current host from intent extra");
 		
-		HostConfiguration hostConfiguration = MainApplication.getInstance().getHostConfiguration(configuredHost);
+		HostConfiguration hostConfiguration = MainApplication.getInstance().getHostConfiguration(currentHost);
 		if (hostConfiguration == null) {
-			hostConfiguration = new HostConfiguration(configuredHost);
+			hostConfiguration = new HostConfiguration(currentHost);
 			MainApplication.getInstance().addHostConfiguration(hostConfiguration);
 			
 			if (MainApplication.getInstance().isHostConfigurationsChanged())
@@ -80,9 +75,9 @@ public class ConfigureStreamActivity extends AppCompatActivity {
 			return;
 		}
 		
-		HostConfiguration hostConfiguration = MainApplication.getInstance().getHostConfiguration(configuredHost);
+		HostConfiguration hostConfiguration = MainApplication.getInstance().getHostConfiguration(currentHost);
 		if (hostConfiguration == null)
-			throw new RuntimeException(String.format("Failed get host configuration for host %s.", configuredHost));
+			throw new RuntimeException(String.format("Failed get host configuration for host %s.", currentHost));
 		
 		boolean hostConfigurationChanged = false;
 		if (hostConfiguration.getPort() != port) {

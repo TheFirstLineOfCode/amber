@@ -26,14 +26,11 @@ import com.thefirstlineofcode.sand.client.sensor.SensorPlugin;
 import com.thefirstlineofcode.sand.client.thing.ThingsUtils;
 import com.thefirstlineofcode.sand.protocols.thing.CommunicationNet;
 import com.thefirstlineofcode.sand.protocols.thing.RegisteredEdgeThing;
-import com.thefirstlineofcode.sand.protocols.thing.lora.BleAddress;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class IotBgService extends Service implements IIotBgService,
@@ -44,8 +41,9 @@ public class IotBgService extends Service implements IIotBgService,
 	private IChatClient chatClient;
 	private IConcentrator concentratorMaybeNull;
 	
+	@Nullable
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
+	public IBinder onBind(Intent intent) {
 		String host = intent.getStringExtra(getString(R.string.current_host));
 		hostConfiguration = MainApplication.getInstance().getHostConfiguration(host);
 		if (hostConfiguration == null)
@@ -60,12 +58,6 @@ public class IotBgService extends Service implements IIotBgService,
 		
 		logger.info("IoT background service has started.");
 		
-		return Service.START_REDELIVER_INTENT;
-	}
-	
-	@Nullable
-	@Override
-	public IBinder onBind(Intent intent) {
 		return new IotBgBinder(this);
 	}
 	
@@ -164,8 +156,10 @@ public class IotBgService extends Service implements IIotBgService,
 	@Override
 	public void disconnectFromHost() {
 		concentratorMaybeNull = null;
+		
 		if (chatClient.isConnected())
 			chatClient.close();
+		chatClient = null;
 	}
 	
 	@Override
@@ -210,7 +204,7 @@ public class IotBgService extends Service implements IIotBgService,
 		Map<Integer, LanNode> lanNodes = new HashMap<Integer, LanNode>();
 		IThingNodeManager lanNodeManager = (MainApplication)getApplication();
 		for (ThingNode thingNode : lanNodeManager.getThingNodes()) {
-			if (thingNode.getLanId() != 0) {
+			if (thingNode.getLanId() != null) {
 				lanNodes.put(thingNode.getLanId(), thingNodeToLanNode(thingNode));
 			}
 		}
@@ -249,6 +243,13 @@ public class IotBgService extends Service implements IIotBgService,
 	@Override
 	public void messageSent(String message) {
 		// Ignore.
+	}
+	
+	@Override
+	public boolean onUnbind(Intent intent) {
+		disconnectFromHost();
+		
+		return super.onUnbind(intent);
 	}
 	
 	@Override
