@@ -93,8 +93,8 @@ public class ThingNodesAdapter extends ListAdapter<ThingNode, ThingNodesAdapter.
 		if (state == IBleDevice.State.CONNECTING) {
 			menu.getMenu().findItem(R.id.device_submenu_connect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
-			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_add_device_as_node).setEnabled(false);
+			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
 		} else if (state == IBleDevice.State.NOT_CONNECTED) {
 			menu.getMenu().findItem(R.id.device_submenu_disconnect).setEnabled(false);
 			menu.getMenu().findItem(R.id.device_submenu_send_message).setEnabled(false);
