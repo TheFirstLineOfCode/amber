@@ -49,7 +49,6 @@ public class IotBgService extends Service implements IIotBgService,
 		if (hostConfiguration == null)
 			throw new IllegalArgumentException(String.format("Can't get host configuration for host '%s'.", host));
 		
-		chatClient = createChaClient(hostConfiguration);
 		if (!isEdgeThingRegistered()) {
 			registerEdgeThing();
 		} else {
@@ -74,8 +73,11 @@ public class IotBgService extends Service implements IIotBgService,
 	}
 	
 	private StandardStreamConfig getStreamConfig(HostConfiguration hostConfiguration) {
-		return new StandardStreamConfig(hostConfiguration.getHost(),
+		StandardStreamConfig streamConfig = new StandardStreamConfig(hostConfiguration.getHost(),
 				hostConfiguration.getPort(), hostConfiguration.isTlsRequired());
+		streamConfig.setResource("0");
+		
+		return streamConfig;
 	}
 	
 	private void registerPlugins(IChatClient chatClient) {
@@ -84,7 +86,6 @@ public class IotBgService extends Service implements IIotBgService,
 		chatClient.register(SensorPlugin.class);
 		chatClient.register(ActuatorPlugin.class);
 	}
-	
 	
 	@Override
 	public void registerEdgeThing() {
@@ -140,7 +141,11 @@ public class IotBgService extends Service implements IIotBgService,
 		if (!isEdgeThingRegistered())
 			throw new IllegalStateException("Not register yet.");
 		
-		chatClient.addConnectionListener(this);
+		if (chatClient == null) {
+			chatClient = createChaClient(hostConfiguration);
+			chatClient.addConnectionListener(this);
+		}
+		
 		try {
 			chatClient.connect(new UsernamePasswordToken(
 					hostConfiguration.getThingName(), hostConfiguration.getThingCredentials()));
