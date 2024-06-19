@@ -52,27 +52,9 @@ public class MainActivity extends AppCompatActivity implements
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		if ((checkSelfPermission(Manifest.permission.BLUETOOTH) ==
-				PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)  ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
-						PackageManager.PERMISSION_DENIED)) {
-			requestPermissions(
-					new String[] {
-							Manifest.permission.BLUETOOTH,
-							Manifest.permission.BLUETOOTH_ADMIN,
-							Manifest.permission.BLUETOOTH_SCAN,
-							Manifest.permission.BLUETOOTH_CONNECT,
-							Manifest.permission.ACCESS_FINE_LOCATION,
-							Manifest.permission.ACCESS_COARSE_LOCATION
-					}, BLUETOOTH_PERMISSIONS_REQUEST_CODE);
+		if (!AmberUtils.checkPermissionsAppNeeded(this)) {
+			requestPermissions(AmberUtils.getPermissionsAppNeeded(),
+					BLUETOOTH_PERMISSIONS_REQUEST_CODE);
 		} else {
 			onCreate();
 		}
@@ -154,7 +136,8 @@ public class MainActivity extends AppCompatActivity implements
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		
-		if (requestCode == BLUETOOTH_PERMISSIONS_REQUEST_CODE) {
+		if (requestCode == BLUETOOTH_PERMISSIONS_REQUEST_CODE &&
+				AmberUtils.allPermissionsGranted(grantResults)) {
 			onCreate();
 		} else {
 			new AlertDialog.Builder(this).

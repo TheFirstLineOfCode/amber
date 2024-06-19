@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -37,30 +38,8 @@ public class ConfigureHostActivity extends AppCompatActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-		if ((checkSelfPermission(Manifest.permission.INTERNET) ==
-					PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH) ==
-					PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)  ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
-						PackageManager.PERMISSION_DENIED) ||
-				(checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
-						PackageManager.PERMISSION_DENIED)) {
-			requestPermissions(
-					new String[] {
-							Manifest.permission.INTERNET,
-							Manifest.permission.BLUETOOTH,
-							Manifest.permission.BLUETOOTH_ADMIN,
-							Manifest.permission.BLUETOOTH_SCAN,
-							Manifest.permission.BLUETOOTH_CONNECT,
-							Manifest.permission.ACCESS_FINE_LOCATION,
-							Manifest.permission.ACCESS_COARSE_LOCATION
-					}, PERMISSIONS_REQUEST_CODE);
+		if (!AmberUtils.checkPermissionsAppNeeded(this)) {
+			requestPermissions(AmberUtils.getPermissionsAppNeeded(), PERMISSIONS_REQUEST_CODE);
 		} else {
 			onCreate();
 		}
@@ -188,7 +167,7 @@ public class ConfigureHostActivity extends AppCompatActivity {
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		
-		if (requestCode == PERMISSIONS_REQUEST_CODE && allPermissionsGranted(grantResults)) {
+		if (requestCode == PERMISSIONS_REQUEST_CODE && AmberUtils.allPermissionsGranted(grantResults)) {
 			onCreate();
 		} else {
 			new AlertDialog.Builder(this).
@@ -202,18 +181,5 @@ public class ConfigureHostActivity extends AppCompatActivity {
 							}
 					).create().show();
 		}
-	}
-	
-	private boolean allPermissionsGranted(int[] grantResults) {
-		for (int i = 0; i < grantResults.length; i++) {
-			if (i == 1 || i == 2)
-				continue;
-			
-			int grantResult = grantResults[i];
-			if (grantResult != PackageManager.PERMISSION_GRANTED)
-				return false;
-		}
-		
-		return true;
 	}
 }

@@ -160,6 +160,7 @@ public class ThingNodesAdapter extends ListAdapter<ThingNode, ThingNodesAdapter.
 					throw new IllegalArgumentException(String.format("Device which's thing ID is '%d' can't be found.", position));
 				
 				MainApplication.getInstance().nodeAdded(lanNode.getThingId(), lanId);
+				MainApplication.getInstance().saveThingNodes();
 				itemChanged(thingNode.getThing());
 				AmberUtils.toastInService(String.format(
 						"Device which's thing ID is '%s' has added as node.", lanNode.getThingId()));

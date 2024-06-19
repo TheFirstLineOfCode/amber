@@ -1,12 +1,17 @@
 package com.thefirstlineofcode.amber.bridge;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,5 +71,70 @@ public class AmberUtils {
 	public static int bytesToInteger(byte[] bytes) {
 		// TODO
 		return -1;
+	}
+	
+	public static String[] getPermissionsAppNeeded() {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+			return new String[] {
+					Manifest.permission.INTERNET,
+					Manifest.permission.BLUETOOTH,
+					Manifest.permission.BLUETOOTH_ADMIN,
+					Manifest.permission.BLUETOOTH_SCAN,
+					Manifest.permission.BLUETOOTH_CONNECT,
+					Manifest.permission.ACCESS_FINE_LOCATION,
+					Manifest.permission.ACCESS_COARSE_LOCATION
+			};
+		} else {
+			return new String[] {
+					Manifest.permission.INTERNET,
+					Manifest.permission.BLUETOOTH,
+					Manifest.permission.BLUETOOTH_ADMIN,
+					Manifest.permission.ACCESS_FINE_LOCATION,
+					Manifest.permission.ACCESS_COARSE_LOCATION
+			};
+		}
+	}
+	
+	public static boolean checkPermissionsAppNeeded(Activity activity) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+			return (activity.checkSelfPermission(Manifest.permission.INTERNET) ==
+					PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.BLUETOOTH) ==
+							PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) ==
+							PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)  ==
+							PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
+							PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+							PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
+							PackageManager.PERMISSION_DENIED);
+		} else {
+			return (activity.checkSelfPermission(Manifest.permission.INTERNET) ==
+					PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.BLUETOOTH) ==
+							PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.BLUETOOTH_ADMIN) ==
+							PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+							PackageManager.PERMISSION_DENIED) ||
+					(activity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
+							PackageManager.PERMISSION_DENIED);
+		}
+	}
+	
+	public static boolean allPermissionsGranted(int[] grantResults) {
+		for (int i = 0; i < grantResults.length; i++) {
+			if (i == 1 || i == 2)
+				continue;
+			
+			int grantResult = grantResults[i];
+			if (grantResult != PackageManager.PERMISSION_GRANTED)
+				return false;
+		}
+		
+		return true;
 	}
 }
