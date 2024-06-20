@@ -1,13 +1,11 @@
 package com.thefirstlineofcode.amber.bridge;
 
-import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.MenuItem;
@@ -24,6 +22,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
+import com.thefirstlineofcode.amber.protocol.QueryWatchState;
+import com.thefirstlineofcode.amber.protocol.WatchState;
+import com.thefirstlineofcode.basalt.xmpp.core.JabberId;
+import com.thefirstlineofcode.basalt.xmpp.core.ProtocolException;
+import com.thefirstlineofcode.basalt.xmpp.core.stanza.Iq;
+import com.thefirstlineofcode.basalt.xmpp.core.stanza.error.BadRequest;
+import com.thefirstlineofcode.basalt.xmpp.core.stanza.error.ItemNotFound;
+import com.thefirstlineofcode.sand.client.actuator.IExecutor;
+import com.thefirstlineofcode.sand.client.concentrator.IConcentrator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +101,7 @@ public class MainActivity extends AppCompatActivity implements
 		IThingNodeManager thingNodeManager = ((IThingNodeManager)getApplication());
 		thingNodeManager.addThingNodeListener(this);
 		
-		thingNodes = getThingNodesWithAmberWatchs(thingNodeManager.getThingNodes());
+		thingNodes = getThingNodesWithAmberWatch(thingNodeManager.getThingNodes());
 		thingNodesAdapter = new ThingNodesAdapter(this, thingNodes);
 		thingNodesAdapter.setHasStableIds(true);
 		thingNodesView.setAdapter(thingNodesAdapter);
@@ -110,15 +117,47 @@ public class MainActivity extends AppCompatActivity implements
 		bindService(bindIotBgServiceIntent, this, BIND_AUTO_CREATE);
 	}
 	
-	private List<ThingNode> getThingNodesWithAmberWatchs(List<ThingNode> thingNodes) {
-		List<ThingNode> thingNodesWithDevices = new ArrayList<>();
+	private List<ThingNode> getThingNodesWithAmberWatch(List<ThingNode> thingNodes) {
+		List<ThingNode> thingNodesWithAmberWatch = new ArrayList<>();
 		
 		for (ThingNode thingNode : thingNodes) {
 			AmberWatch device = AmberWatch.createInstance(getAdapter(), thingNode.getThing());
-			thingNodesWithDevices.add(new ThingNode(thingNode.getLanId(), device));
+			thingNodesWithAmberWatch.add(new ThingNode(thingNode.getLanId(), device));
 		}
 		
-		return thingNodesWithDevices;
+		return thingNodesWithAmberWatch;
+	}
+	
+	public class QueryWatchStateExecutor implements IExecutor<QueryWatchState> {
+		@Override
+		public Object execute(Iq iq, QueryWatchState action) throws ProtocolException {
+			JabberId watchJid = iq.getTo();
+			if (watchJid.getResource() == null ||
+					Integer.toString(IConcentrator.LAN_ID_CONCENTRATOR).equals(watchJid.getResource())) {
+				throw new ProtocolException(new BadRequest("Resource is NULL or is '0'."));
+			}
+			
+			WatchState watchState = null;
+			for (ThingNode thingNode : MainActivity.this.thingNodes) {
+				if (thingNode.getLanId() == null)
+					continue;
+				
+				if (Integer.toString(thingNode.getLanId()).equals(watchJid.getResource())) {
+					AmberWatch watch = (AmberWatch) thingNode.getThing();
+					watchState = new WatchState();
+					watchState.setBatteryLevel(watch.getBatteryLevel());
+					watchState.setStepCount(watch.getStepCount());
+					
+					break;
+				}
+			}
+			
+			if (watchState == null)
+				throw new ProtocolException(new ItemNotFound(String.format(
+						"Watch which's LAN ID is '%s' not be found", watchJid.getResource())));
+			
+			return watchState;
+		}
 	}
 	
 	private BluetoothAdapter getAdapter() {
@@ -260,6 +299,7 @@ public class MainActivity extends AppCompatActivity implements
 	public void onServiceDisconnected(ComponentName componentName) {
 		logger.warn("IoT background servie has disconnected.");
 		
+		iotBgService.disconnectFromHost();
 		iotBgService = null;
 	}
 	

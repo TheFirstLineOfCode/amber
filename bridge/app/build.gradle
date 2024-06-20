@@ -48,4 +48,5 @@ dependencies {
     implementation 'com.thefirstlineofcode.sand.client:sand-client-sensor:1.2.0-BETA1'
     implementation 'com.thefirstlineofcode.sand.client:sand-client-actuator:1.2.0-BETA1'
     implementation 'com.thefirstlineofcode.sand.client:sand-client-concentrator:1.2.0-BETA1'
+    implementation 'com.thefirstlineofcode.amber:amber-protocol:1.0.0-RELEASE'
 }

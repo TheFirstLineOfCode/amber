@@ -9,7 +9,6 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.thefirstlineofcode.basalt.oxm.binary.BinaryUtils;
@@ -21,8 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
@@ -48,7 +45,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 	
 	private int batteryLevel;
 	private int heartRate;
-	private int totalSteps;
+	private int stepCount;
 	
 	private boolean autoConnect;
 	
@@ -75,7 +72,7 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		
 		batteryLevel = 50;
 		heartRate = 0;
-		totalSteps = 0;
+		stepCount = 0;
 		
 		autoConnect = true;
 	}
@@ -88,8 +85,8 @@ public class AmberWatch extends BleThing implements IBleDevice {
 		return heartRate;
 	}
 	
-	public int getTotalSteps() {
-		return totalSteps;
+	public int getStepCount() {
+		return stepCount;
 	}
 	
 	@Override
@@ -268,15 +265,15 @@ public class AmberWatch extends BleThing implements IBleDevice {
 	}
 	
 	private void stepCountChanged(int stepCount) {
-		logger.info("Step count changed to '{}'.", stepCount);
+		this.stepCount = stepCount;
 	}
 	
 	private void heartRateChanged(int heartRate) {
-		logger.info("Heart rate changed to '{}'.", heartRate);
+		this.heartRate = heartRate;
 	}
 	
 	private void batteryLevelChanged(int batteryLevel) {
-		logger.info("Battery level changed to '{}'.", batteryLevel);
+		this.batteryLevel = batteryLevel;
 	}
 	
 	private BluetoothGattCharacteristic getNewAlertcharacteristic() {

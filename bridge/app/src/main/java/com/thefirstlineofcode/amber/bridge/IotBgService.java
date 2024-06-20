@@ -7,6 +7,7 @@ import android.os.IBinder;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.thefirstlineofcode.amber.protocol.QueryWatchState;
 import com.thefirstlineofcode.chalk.android.StandardChatClient;
 import com.thefirstlineofcode.chalk.core.AuthFailureException;
 import com.thefirstlineofcode.chalk.core.IChatClient;
@@ -15,6 +16,8 @@ import com.thefirstlineofcode.chalk.core.stream.UsernamePasswordToken;
 import com.thefirstlineofcode.chalk.network.ConnectionException;
 import com.thefirstlineofcode.chalk.network.IConnectionListener;
 import com.thefirstlineofcode.sand.client.actuator.ActuatorPlugin;
+import com.thefirstlineofcode.sand.client.actuator.IActuator;
+import com.thefirstlineofcode.sand.client.actuator.IExecutor;
 import com.thefirstlineofcode.sand.client.concentrator.ConcentratorPlugin;
 import com.thefirstlineofcode.sand.client.concentrator.IConcentrator;
 import com.thefirstlineofcode.sand.client.concentrator.LanNode;
@@ -40,6 +43,8 @@ public class IotBgService extends Service implements IIotBgService,
 	private HostConfiguration hostConfiguration;
 	private IChatClient chatClient;
 	private IConcentrator concentratorMaybeNull;
+	
+	private IActuator actuator;
 	
 	@Nullable
 	@Override
@@ -160,11 +165,11 @@ public class IotBgService extends Service implements IIotBgService,
 	
 	@Override
 	public void disconnectFromHost() {
-		concentratorMaybeNull = null;
-		
 		if (chatClient.isConnected())
 			chatClient.close();
 		chatClient = null;
+		
+		hostDisconnected();
 	}
 	
 	@Override
@@ -199,7 +204,28 @@ public class IotBgService extends Service implements IIotBgService,
 		connectToHost();
 	}
 	
-	public void hostConnected() {}
+	public void hostConnected() {
+		startActuator();
+	}
+	
+	private void startActuator() {
+		stopActuator();
+		
+		actuator = chatClient.createApi(IActuator.class);
+		actuator.registerExecutor(QueryWatchState.class, MainActivity.QueryWatchStateExecutor.class);
+	}
+	
+	private void stopActuator() {
+		if (actuator != null) {
+			actuator.stop();
+			actuator = null;
+		}
+	}
+	
+	public void hostDisconnected() {
+		concentratorMaybeNull = null;
+		stopActuator();
+	}
 	
 	@Override
 	public IConcentrator getConcentrator() {
