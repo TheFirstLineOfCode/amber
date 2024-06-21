@@ -128,38 +128,6 @@ public class MainActivity extends AppCompatActivity implements
 		return thingNodesWithAmberWatch;
 	}
 	
-	public class QueryWatchStateExecutor implements IExecutor<QueryWatchState> {
-		@Override
-		public Object execute(Iq iq, QueryWatchState action) throws ProtocolException {
-			JabberId watchJid = iq.getTo();
-			if (watchJid.getResource() == null ||
-					Integer.toString(IConcentrator.LAN_ID_CONCENTRATOR).equals(watchJid.getResource())) {
-				throw new ProtocolException(new BadRequest("Resource is NULL or is '0'."));
-			}
-			
-			WatchState watchState = null;
-			for (ThingNode thingNode : MainActivity.this.thingNodes) {
-				if (thingNode.getLanId() == null)
-					continue;
-				
-				if (Integer.toString(thingNode.getLanId()).equals(watchJid.getResource())) {
-					AmberWatch watch = (AmberWatch) thingNode.getThing();
-					watchState = new WatchState();
-					watchState.setBatteryLevel(watch.getBatteryLevel());
-					watchState.setStepCount(watch.getStepCount());
-					
-					break;
-				}
-			}
-			
-			if (watchState == null)
-				throw new ProtocolException(new ItemNotFound(String.format(
-						"Watch which's LAN ID is '%s' not be found", watchJid.getResource())));
-			
-			return watchState;
-		}
-	}
-	
 	private BluetoothAdapter getAdapter() {
 		if (!MainApplication.checkBluetoothAvailable(this)) {
 			AmberUtils.toastInService("Bluetooth isn't available");
@@ -293,6 +261,7 @@ public class MainActivity extends AppCompatActivity implements
 	public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
 		IotBgBinder binder = (IotBgBinder)iBinder;
 		iotBgService = binder.getService();
+		iotBgService.setMainActivity(this);
 	}
 	
 	@Override
@@ -308,5 +277,9 @@ public class MainActivity extends AppCompatActivity implements
 		unbindService(this);
 		
 		super.onDestroy();
+	}
+	
+	public List<ThingNode> getThingNodes() {
+		return thingNodes;
 	}
 }

@@ -8,6 +8,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.thefirstlineofcode.amber.protocol.QueryWatchState;
+import com.thefirstlineofcode.amber.protocol.WatchState;
+import com.thefirstlineofcode.basalt.xmpp.core.JabberId;
+import com.thefirstlineofcode.basalt.xmpp.core.Protocol;
+import com.thefirstlineofcode.basalt.xmpp.core.ProtocolException;
+import com.thefirstlineofcode.basalt.xmpp.core.stanza.Iq;
+import com.thefirstlineofcode.basalt.xmpp.core.stanza.error.BadRequest;
+import com.thefirstlineofcode.basalt.xmpp.core.stanza.error.ItemNotFound;
 import com.thefirstlineofcode.chalk.android.StandardChatClient;
 import com.thefirstlineofcode.chalk.core.AuthFailureException;
 import com.thefirstlineofcode.chalk.core.IChatClient;
@@ -18,6 +25,7 @@ import com.thefirstlineofcode.chalk.network.IConnectionListener;
 import com.thefirstlineofcode.sand.client.actuator.ActuatorPlugin;
 import com.thefirstlineofcode.sand.client.actuator.IActuator;
 import com.thefirstlineofcode.sand.client.actuator.IExecutor;
+import com.thefirstlineofcode.sand.client.actuator.IExecutorFactory;
 import com.thefirstlineofcode.sand.client.concentrator.ConcentratorPlugin;
 import com.thefirstlineofcode.sand.client.concentrator.IConcentrator;
 import com.thefirstlineofcode.sand.client.concentrator.LanNode;
@@ -34,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class IotBgService extends Service implements IIotBgService,
@@ -45,6 +54,12 @@ public class IotBgService extends Service implements IIotBgService,
 	private IConcentrator concentratorMaybeNull;
 	
 	private IActuator actuator;
+	private MainActivity activity;
+	
+	@Override
+	public void setMainActivity(MainActivity activity) {
+		this.activity = activity;
+	}
 	
 	@Nullable
 	@Override
@@ -212,7 +227,72 @@ public class IotBgService extends Service implements IIotBgService,
 		stopActuator();
 		
 		actuator = chatClient.createApi(IActuator.class);
-		actuator.registerExecutor(QueryWatchState.class, MainActivity.QueryWatchStateExecutor.class);
+		actuator.registerExecutorFactory(new IExecutorFactory<QueryWatchState>() {
+			@Override
+			public Protocol getProtocol() {
+				return QueryWatchState.PROTOCOL;
+			}
+			
+			@Override
+			public Class<QueryWatchState> getActionType() {
+				return QueryWatchState.class;
+			}
+			
+			@Override
+			public Class<?> getActionResultType() {
+				return WatchState.class;
+			}
+			
+			@Override
+			public Protocol getActionResultProtocol() {
+				return WatchState.PROTOCOL;
+			}
+			
+			@Override
+			public IExecutor<QueryWatchState> create() {
+				return new QueryWatchStateExecutor(activity.getThingNodes());
+			}
+		});
+		actuator.start();
+	}
+	
+	public static class QueryWatchStateExecutor implements IExecutor<QueryWatchState> {
+		private List<ThingNode> thingNodes;
+		
+		public QueryWatchStateExecutor(List<ThingNode> thingNodes) {
+			this.thingNodes = thingNodes;
+		}
+		
+		@Override
+		public Object execute(Iq iq, QueryWatchState action) throws ProtocolException {
+			logger.info("Action 'QueryWatchState' has received.");
+			JabberId watchJid = iq.getTo();
+			if (watchJid.getResource() == null ||
+					Integer.toString(IConcentrator.LAN_ID_CONCENTRATOR).equals(watchJid.getResource())) {
+				throw new ProtocolException(new BadRequest("Resource is NULL or is '0'."));
+			}
+			
+			WatchState watchState = null;
+			for (ThingNode thingNode : thingNodes) {
+				if (thingNode.getLanId() == null)
+					continue;
+				
+				if (Integer.toString(thingNode.getLanId()).equals(watchJid.getResource())) {
+					AmberWatch watch = (AmberWatch) thingNode.getThing();
+					watchState = new WatchState();
+					watchState.setBatteryLevel(watch.getBatteryLevel());
+					watchState.setStepCount(watch.getStepCount());
+					
+					break;
+				}
+			}
+			
+			if (watchState == null)
+				throw new ProtocolException(new ItemNotFound(String.format(
+						"Watch which's LAN ID is '%s' not be found", watchJid.getResource())));
+			
+			return watchState;
+		}
 	}
 	
 	private void stopActuator() {

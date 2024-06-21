@@ -10,4 +10,5 @@ public interface IIotBgService {
 	void disconnectFromHost();
 	boolean isConnectedToHost();
 	IConcentrator getConcentrator();
+	void setMainActivity(MainActivity activity);
 }
