@@ -280,6 +280,7 @@ public class IotBgService extends Service implements IIotBgService,
 				if (Integer.toString(thingNode.getLanId()).equals(watchJid.getResource())) {
 					AmberWatch watch = (AmberWatch) thingNode.getThing();
 					watchState = new WatchState();
+					watchState.setAddress(watch.getAddress());
 					watchState.setBatteryLevel(watch.getBatteryLevel());
 					watchState.setStepCount(watch.getStepCount());
 					

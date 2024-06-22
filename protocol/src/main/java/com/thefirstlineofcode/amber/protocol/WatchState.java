@@ -7,9 +7,18 @@ import com.thefirstlineofcode.basalt.xmpp.core.Protocol;
 public class WatchState {
 	public static final Protocol PROTOCOL = new Protocol("urn:leps:things:amber", "watch-state");
 	
+	private String address;
 	private int batteryLevel;
 	private int stepCount;
 	
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
 	public int getBatteryLevel() {
 		return batteryLevel;
 	}
